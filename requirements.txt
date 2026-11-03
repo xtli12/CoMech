@@ -1,0 +1,7 @@
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.2
+scikit-image>=0.21
+matplotlib>=3.7
+pillow>=9.0
+# optional: torch (CUDA) for the GPU solver of the engine and the GPU scaling experiment (gpu/)

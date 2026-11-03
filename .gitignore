@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Data, results and inputs that are not distributed (see README)
+data/
+results/
+results_gpu/
+logs/
+out/
+crops/
+*.npz
+*.npy
+*.pkl
+*.pt
+*.ckpt
+*.zip
+*.csv
+*.dat
+*.rst
+
+# Run-control files of the pipelines
+ENGINE_DONE
+PIPELINE_DONE
+STOP
