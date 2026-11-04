@@ -289,59 +289,75 @@ def fig4():
     hy = HY[3]
     bd.t(hx + 1.2, hy + 3.5, "Outcome head R(s′)", size=FS, color=INK2)
     bd.t(hx + 1.2, hy + 6.6, "clinical stream, not trained here", size=FS_SMALL, color=INK2)
-    # ---- effect-grounded objectives (losses in red)
+    # ---- effect-grounded objectives (losses in red); v5b (authors, 2026-11-04): content laid out over the full width
+    #      of the box -- descriptions in one column, the swap/sensitivity diagrams spread out, text set flush right
     lx, ly, lw_, lh = 125.2, 35.6, 56.0, 40.6
+    xr = lx + lw_ - 1.6                                   # right edge of the content
     bd.card(lx, ly, lw_, lh, ec=NAVY, lw=0.6, r=1.2)
     bd.t(lx + 1.6, ly + 3.6, "Objectives", size=FS_LABEL, weight="bold", color=NAVY)
-    e = ell_L(bd, lx + 1.6, ly + 7.6, "field"); bd.t(e + 0.15, ly + 7.6, ",", size=FS, color=PAL["loss"])
-    e = ell_L(bd, e + 1.2, ly + 7.6, "eff")
-    bd.t(e + 1.2, ly + 7.6, "reconstruct fields and effects", size=FS_SMALL, color=INK2)
-    e = ell_L(bd, lx + 1.6, ly + 11.6, "roll")
-    bd.t(e + 1.2, ly + 11.6, "two-step roll-out: resection → osteotomy", size=FS_SMALL, color=INK2)
+    xd = lx + 15.6                                        # left edge of the descriptions of the first two rows
+    e = ell_L(bd, lx + 1.6, ly + 7.8, "field"); bd.t(e + 0.15, ly + 7.8, ",", size=FS, color=PAL["loss"])
+    e = ell_L(bd, e + 1.2, ly + 7.8, "eff")
+    bd.t(max(xd, e + 1.2), ly + 7.8, "reconstruct fields and effect descriptors", size=FS_SMALL, color=INK2)
+    e = ell_L(bd, lx + 1.6, ly + 11.9, "roll")
+    bd.t(max(xd, e + 1.2), ly + 11.9, "two-step roll-out: resection → osteotomy", size=FS_SMALL, color=INK2)
+
+    swap_txt = ["equal FE effects →", "compatible futures"]
+    sens_txt = ["near actions, different", "effects: kept apart"]
+    tw_max = max(bd.tw(t_, FS_SMALL) for t_ in swap_txt + sens_txt)
+    xt = xr - tw_max                                      # text column, flush with the right edge
+    # x positions of the diagram, spread between the icon and the text column
+    span = xt - 2.2 - (lx + 1.6)
+    X = {k: lx + 1.6 + f * span for k, f in {"icon": 0.10, "lab": 0.24, "cl": 0.35, "l0": 0.44, "l1": 0.52,
+                                              "D": 0.58, "mid": 0.70, "bars": 0.77, "ok": 0.97}.items()}
 
     def pair(yr, c2, fill2, lab2, seed):
-        bd.cluster(lx + 10.6, yr - 1.8, 1.9, 1.25, "#D9534F", n=4, seed=seed)
-        bd.cluster(lx + 10.6, yr + 1.8, 1.9, 1.25, c2, n=4, seed=seed + 3, fill=fill2)
-        bd.t(lx + 8.0, yr - 3.3, "a", size=FS_SMALL, style="italic", color=INK2, ha="center")
+        bd.cluster(X["cl"], yr - 1.9, 2.2, 1.35, "#D9534F", n=4, seed=seed)
+        bd.cluster(X["cl"], yr + 1.9, 2.2, 1.35, c2, n=4, seed=seed + 3, fill=fill2)
+        bd.t(X["lab"], yr - 3.3, "a", size=FS_SMALL, style="italic", color=INK2, ha="center")
         if lab2.endswith("⁻"):   # superscript minus set in the text font (2026-11-03)
-            bd.tsup(lx + 8.0, yr + 4.7, lab2[:-1], "−", size=FS_SMALL, color=INK2, ha="center")
+            bd.tsup(X["lab"], yr + 4.9, lab2[:-1], "−", size=FS_SMALL, color=INK2, ha="center")
         else:
-            bd.t(lx + 8.0, yr + 4.7, lab2, size=FS_SMALL, style="italic", color=INK2, ha="center")
-        for dy in (-1.8, 1.8):
-            bd.seg([lx + 12.3, lx + 14.5], [yr + dy, yr], color=NAVY, lw=0.5)
-        bd.circ(lx + 15.8, yr, 1.45, fc=NAVY, ec="none", z=6)
-        bd.t(lx + 15.8, yr + 0.75, "D", size=FS_SMALL, style="italic", weight="bold", color="white", ha="center", z=7)
+            bd.t(X["lab"], yr + 4.9, lab2, size=FS_SMALL, style="italic", color=INK2, ha="center")
+        for dy in (-1.9, 1.9):
+            bd.seg([X["l0"], X["l1"]], [yr + dy, yr], color=NAVY, lw=0.5)
+        bd.circ(X["D"], yr, 1.6, fc=NAVY, ec="none", z=6)
+        bd.t(X["D"], yr + 0.8, "D", size=FS_SMALL, style="italic", weight="bold", color="white", ha="center", z=7)
+
+    def rows_text(yr, sym, eq, txt):
+        e = ell_L(bd, xt, yr - 1.0, sym)
+        bd.t(e + 1.0, yr - 1.0, eq, size=FS_SMALL, color=INK2)
+        for k_, t_ in enumerate(txt):
+            bd.t(xt, yr + 2.4 + 2.3 * k_, t_, size=FS_SMALL, color=INK2)
 
     # effect-swap: actions whose FE effects agree must predict compatible futures
-    yr = ly + 18.0
-    bd.icon_swap(lx + 4.2, yr, 2.5)
+    yr = ly + 18.4
+    bd.icon_swap(X["icon"], yr, 2.7)
     pair(yr, "#2F6FB5", None, "a′", 1)
-    bd.t(lx + 18.6, yr + 0.9, "»", size=FS_LABEL, color=NAVY, ha="center")
-    for dy, c in [(-1.8, "#F2B79F"), (1.8, "#A9D6E5")]:
-        for q, hgt in enumerate([1.5, 2.6, 1.1]):
-            bd.rect(lx + 20.6 + q * 1.15, yr + dy + 1.0 - hgt, 0.85, hgt, fc=c, ec="none", z=6)
-    bd.badge(lx + 25.6, yr, 1.15, "check")
-    e = ell_L(bd, lx + 28.4, yr - 0.9, "swap")
-    bd.t(e + 1.0, yr - 0.9, "Eq. (2)", size=FS_SMALL, color=INK2)
-    bd.t(lx + 28.4, yr + 2.4, "equal FE effects →", size=FS_SMALL, color=INK2)
-    bd.t(lx + 28.4, yr + 4.6, "compatible futures", size=FS_SMALL, color=INK2)
+    bd.t(X["mid"], yr + 0.9, "»", size=FS_LABEL, color=NAVY, ha="center")
+    for dy, c in [(-1.9, "#F2B79F"), (1.9, "#A9D6E5")]:
+        for q, hgt in enumerate([1.6, 2.8, 1.2]):
+            bd.rect(X["bars"] + q * 1.35, yr + dy + 1.0 - hgt, 1.0, hgt, fc=c, ec="none", z=6)
+    bd.badge(X["ok"], yr, 1.25, "check")
+    rows_text(yr, "swap", "Eq. (2)", swap_txt)
     # action sensitivity: neighbouring actions whose effects differ must stay apart
-    yr = ly + 28.4
-    bd.icon_sens(lx + 4.2, yr, 2.5)
+    yr = ly + 28.8
+    bd.icon_sens(X["icon"], yr, 2.7)
     pair(yr, "#D9534F", "#E99A8F", "a⁻", 6)
-    bd.arr(lx + 17.4, yr, lx + 19.6, yr, color=NAVY, lw=0.5, head=(1.1, 0.7))
-    bd.rect(lx + 20.6, yr - 2.4, 0.95, 4.0, fc="#F2B79F", ec="none", z=6)
-    bd.rect(lx + 22.0, yr - 0.2, 0.95, 1.8, fc=GREY, ec="none", z=6)
+    bd.arr(X["mid"] - 1.3, yr, X["mid"] + 1.3, yr, color=NAVY, lw=0.5, head=(1.1, 0.7))
+    bd.rect(X["bars"], yr - 2.5, 1.0, 4.2, fc="#F2B79F", ec="none", z=6)
+    bd.rect(X["bars"] + 1.5, yr - 0.2, 1.0, 1.9, fc=GREY, ec="none", z=6)
     for s_ in (1, -1):
-        bd.seg([lx + 24.4, lx + 26.0], [yr - 0.8 * s_, yr + 0.8 * s_], color=GREY_D, lw=0.7, z=6)
-    e = ell_L(bd, lx + 28.4, yr - 0.9, "sens")
-    bd.t(e + 1.0, yr - 0.9, "Eq. (3)", size=FS_SMALL, color=INK2)
-    bd.t(lx + 28.4, yr + 2.4, "near actions, different", size=FS_SMALL, color=INK2)
-    bd.t(lx + 28.4, yr + 4.6, "effects: kept apart", size=FS_SMALL, color=INK2)
-    # clinical-stream objectives (dashed: not trained)
+        bd.seg([X["ok"] - 0.85, X["ok"] + 0.85], [yr - 0.85 * s_, yr + 0.85 * s_], color=GREY_D, lw=0.7, z=6)
+    rows_text(yr, "sens", "Eq. (3)", sens_txt)
+    # clinical-stream objectives (dashed: not trained), centred in their box
     yd = ly + 36.9
     bd.box(lx + 1.2, yd - 2.5, lw_ - 2.4, 4.3, fc="none", ec=MUTED, lw=0.5, ls=(0, (1.8, 1.2)), r=0.7, z=5)
-    e = ell_L(bd, lx + 2.4, yd + 0.6, "bind", color=MUTED); bd.t(e + 0.15, yd + 0.6, ",", size=FS, color=MUTED)
+    wtxt = (bd.tw("L", FS + 0.5, fontstyle="italic") + bd.tw("bind", FS + 0.5 - 0.8) + bd.tw(", ", FS)
+            + bd.tw("L", FS + 0.5, fontstyle="italic") + bd.tw("out", FS + 0.5 - 0.8) + 1.4
+            + bd.tw("clinical stream; not trained here", FS_SMALL))
+    x0 = lx + lw_ / 2 - wtxt / 2
+    e = ell_L(bd, x0, yd + 0.6, "bind", color=MUTED); bd.t(e + 0.15, yd + 0.6, ",", size=FS, color=MUTED)
     e = ell_L(bd, e + 1.2, yd + 0.6, "out", color=MUTED)
     bd.t(e + 1.2, yd + 0.6, "clinical stream; not trained here", size=FS_SMALL, color=INK2)
 

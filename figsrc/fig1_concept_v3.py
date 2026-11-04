@@ -110,22 +110,38 @@ def fig1():
     rows = [("ct", 7.0, ["Imaging"], ["shape, not force"]),
             ("fe", 19.2, ["Finite element", "analysis"], ["hours to weeks per", "patient and scenario"]),
             ("wm", 31.6, ["Image/video", "world models"], ["imagine pixels,", "not mechanics"])]
+    # v5b (authors, 2026-11-04): pictures and text centred -- the rows form one block centred in the panel (pictures in
+    # one column, text in one column) and each text block is centred vertically on its picture
+    IMG = {"ct": (10.4, 10.4, 0.0), "fe": (10.4, 11.6, -0.4), "wm": (10.8, 8.4, 0.8)}      # width, height, y offset
+    gap_ = 1.9
+    wcol = max(v[0] for v in IMG.values())
+    wtxt = max(max([bd.tw(h_, FS) for h_ in hd] + [bd.tw(b_, FS_SMALL) for b_ in body]) for _, _, hd, body in rows)
+    gx = PA[0] + (PA[1] - (wcol + gap_ + wtxt)) / 2
+    txa = gx + wcol + gap_
+    step_b = 2.05 * (FS_SMALL + BUMP) / FS_SMALL
     for kind, y, hd, body in rows:
+        w_i, h_i, dy = IMG[kind]
+        ix_ = gx + (wcol - w_i) / 2
         if kind == "ct":
-            bd.card(x0, y, 10.4, 10.4, rounded_mask(tile(CT("a3"), (0.1, 0.9, 0.1, 0.9)), 0.06), r=0.7, pad=0.35)
+            bd.card(ix_, y + dy, w_i, h_i, rounded_mask(tile(CT("a3"), (0.1, 0.9, 0.1, 0.9)), 0.06), r=0.7, pad=0.35)
         elif kind == "fe":
-            bd.img(x0 + 0.1, y - 0.4, 10.4, 11.6, white_to_alpha(tile(os.path.join(CROPS, "r1_061.png"))), z=3)
+            bd.img(ix_ + 0.1, y + dy, w_i, h_i, white_to_alpha(tile(os.path.join(CROPS, "r1_061.png"))), z=3)
         else:
-            bd.film(x0, y + 0.8, 10.8, 8.4, [pixel_frame(3), pixel_frame(8)], gap=0.4)
+            bd.film(ix_, y + dy, w_i, h_i, [pixel_frame(3), pixel_frame(8)], gap=0.4)
+        last = 2.6 * len(hd) + step_b * (len(body) - 1)              # first to last baseline
+        b0 = y + dy + h_i / 2 - (1.75 + last + 0.55) / 2 + 1.75
         for j, h_ in enumerate(hd):
-            bd.t(x0 + 12.3, y + 2.6 + 2.6 * j, h_, size=FS, weight="bold", color=NAVY)
-        lines(bd, x0 + 12.3, y + 5.2 + 2.6 * (len(hd) - 1), body, step=2.05)
+            bd.t(txa, b0 + 2.6 * j, h_, size=FS, weight="bold", color=NAVY)
+        lines(bd, txa, b0 + 2.6 * len(hd), body, step=2.05)
     # the population rule, drawn on the virtual child of Fig. 7a (engine rendering, as in b)
     yr = 45.4
-    bd.arr(x0 + 5.4, 42.6, x0 + 5.4, yr - 0.3, color=PAL["warm_edge"], lw=0.7, head=(1.4, 0.85))
-    bd.t(x0 + 7.0, 44.3, "so decisions rest on", size=FS_SMALL, color=INK2)
+    xmid = PA[0] + PA[1] / 2
+    wso = bd.tw("so decisions rest on", FS_SMALL)
+    xa_ = xmid - (wso + 1.6) / 2
+    bd.arr(xa_, 42.6, xa_, yr - 0.3, color=PAL["warm_edge"], lw=0.7, head=(1.4, 0.85))
+    bd.t(xa_ + 1.6, 44.3, "so decisions rest on", size=FS_SMALL, color=INK2)
     bd.card(x0, yr, PA[1] - 3.0, HT - yr - 0.9, ec=PAL["warm_edge"], lw=0.55, r=1.0)
-    bd.t(x0 + 1.3, yr + 3.3, "Population rule", size=FS, weight="bold", color=PAL["warm_edge"])
+    bd.t(xmid, yr + 3.3, "Population rule", size=FS, weight="bold", color=PAL["warm_edge"], ha="center")
     pl = Placed(bd, "pre", x0 + 0.6, yr + 4.0, PA[1] - 4.2, 11.6, z=4)
     if REAL_BONE:      # real-bone engine: centroids measured on the label raster (rbannot.py; Claude, 2026-11-01)
         from rbannot import mask_centroid
@@ -149,9 +165,9 @@ def fig1():
     bd.rect(bx, by, bw * r_, 1.5, fc=COAL, z=6)
     bd.seg([bx + 0.5 * bw, bx + 0.5 * bw], [by - 0.8, by + 2.3], color=INK, lw=0.6, z=7)
     bd.t(bx + 0.5 * bw + 0.5, by - 0.4, "50%", size=FS_SMALL, color=INK, z=7)
-    bd.t(bx, by + 4.4, f"C/P = {100 * r_:.0f}%: " + ("resect alone" if r_ < 0.5 else "do not resect alone"),
-         size=FS_SMALL, color=INK)          # what the 50% rule says for this child (Claude, 2026-11-01)
-    bd.t(bx, by + 6.8, "(one number for every child)", size=FS_SMALL, color=INK2)
+    bd.t(xmid, by + 4.4, f"C/P = {100 * r_:.0f}%: " + ("resect alone" if r_ < 0.5 else "do not resect alone"),
+         size=FS_SMALL, color=INK, ha="center")          # what the 50% rule says for this child (Claude, 2026-11-01)
+    bd.t(xmid, by + 6.8, "(one number for every child)", size=FS_SMALL, color=INK2, ha="center")
 
     # ================================================================== b: CoMech
     xb = PB[0] + 1.5
@@ -284,15 +300,16 @@ def fig1():
                                      "effects → kept apart"], step=1.9)
 
     # ================================================================== c: rehearsal before the incision
+    # v5b (authors, 2026-11-04: "too much and too scattered text"): three blocks on one grid, each with a short navy
+    # header -- latent rehearsal (picture, compact key, J), the FE-verified plan, and the tolerance envelope whose
+    # symbols (d*, d, R, sigma-bar) are those of the axes and of Methods; every block spans the width of the panel
     xc = PC[0] + 1.5
+    xr = PC[0] + PC[1] - 1.5
     head(bd, xc, 1.0, "c", "Rehearsal before surgery")
-    # latent rehearsal of the virtual child: real latent states (seed 0), ensemble objective J
-    bd.card(xc, 5.7, 27.4, 26.5, under=True, r=0.8, shadow=True)
-    info = latent_fan(bd, xc + 0.6, 6.3, 26.2, 21.6, ms=1.0, star=1.05, lw_ray=0.25)
-    sp = info["s"]
-    bd.t(sp[0] + 1.6, sp[1] - 0.6, "s", size=FS, style="italic", color=NAVY, z=9)
-    ch_pt = info["pts"][info["choice"]]
-    # marker legend (two lines) and the J scale
+    t_ch, ip_ch, _ = child["choice"]
+    side = "lateralizing" if t_ch < 0 else "medializing"
+    L = latent_data()
+
     def mark(x_, y_, kind):
         if kind == "D":
             bd.b.scatter([x_], [y_], s=(0.85 * 2.835) ** 2, marker="D", color="#9BD25A", edgecolors="white",
@@ -306,40 +323,43 @@ def fig1():
         else:
             bd.b.scatter([x_], [y_], s=(1.05 * 2.835 * 2.2) ** 2, marker="*", color="#F5A623", edgecolors=INK,
                          linewidths=0.35, zorder=8)
-    for row, items in enumerate([[("D", "with"), ("o", "without interposition")],
-                                 [("s", "resection alone"), ("*", "plan")]]):
-        lx, ly = xc + 0.75, 24.6 + row * 2.5         # v5: tighter spacing so that the larger text stays in the card
-        for kind, txt in items:
-            mark(lx + (0.35 if kind == "*" else 0.0), ly - 0.75, kind)
-            off = {"*": 1.55, "s": 1.1}.get(kind, 0.85)
-            bd.t(lx + off, ly, txt, size=FS_SMALL, color=INK2, z=8)
-            lx += off + 0.95 + bd.tw(txt, FS_SMALL)
-    j_bar(bd, xc + 9.6, 29.8, 9.0, h=0.9)
-    bd.t(xc + 1.3, 30.65, "J", size=FS, style="italic", color=INK)
-    tx = xc + 28.6
-    t_ch, ip_ch, _ = child["choice"]
-    side = "lateralizing" if t_ch < 0 else "medializing"
-    L = latent_data()
-    al = child["foot"]["align"]
-    lines(bd, tx, 8.4, [("Latent", {"weight": "bold", "color": NAVY, "size": FS}),
-                        ("rehearsal", {"weight": "bold", "color": NAVY, "size": FS}),
-                        ("virtual child of a", {"color": INK}),
-                        (f"(type {child['foot']['ctype']}, {abs(al):.0f}° {'valgus' if al > 0 else 'varus'})", {"color": INK}),
-                        f"{len(L['cands'])} adjuncts after", "complete resection,", "ranked by J"],
-          step=1.95)
-    # the ranking objective J (Methods, equation (4)), bottom right of the card (authors, 2026-11-04)
-    for k, eq in enumerate([r"$J = z_{\mathrm{P}} + z_{\mathrm{M}}$",
-                            r"$\;+\,½\,(z_{\mathrm{TN}} + z_{\mathrm{A}})$",
-                            r"$\;+\,½\,(|z_{\mathrm{ev}}| + |z_{\mathrm{nd}}|)$",
-                            r"$\;+\,0.3\,(|t|/10 + 0.1\,i)$"]):
-        bd.t(tx, 24.9 + 2.55 * k, eq, size=FS_SMALL, color=INK, z=8)
-    # FE verification of the chosen plan (Fig. 7a) and its effects
+
+    # ---- block 1: latent rehearsal of the virtual child (real latent states, seed 0; ensemble objective J)
+    bd.t(xc, 8.5, f"Latent rehearsal of {len(L['cands'])} adjuncts", size=FS, color=NAVY)
+    cy0, chh = 9.7, 14.6
+    bd.card(xc, cy0, xr - xc, chh, under=True, r=0.8, shadow=True)
+    kx = xr - 16.4                                          # key column inside the card
+    info = latent_fan(bd, xc + 0.4, cy0 + 0.5, kx - xc - 1.0, chh - 1.0, ms=1.0, star=1.05, lw_ray=0.25)
+    sp = info["s"]
+    bd.t(sp[0] + 1.7, sp[1] + 0.5, "s", size=FS, style="italic", color=NAVY, z=9)
+    ky = cy0 + (chh - 3 * 2.4) / 2 + 1.6                    # key centred in the card
+    bd.t(kx, ky, "interposition:", size=FS_SMALL, color=INK2, z=8)
+    xk = kx + 0.45
+    for kind, txt in [("D", "with"), ("o", "without")]:
+        mark(xk, ky + 2.4 - 0.75, kind)
+        bd.t(xk + 0.85, ky + 2.4, txt, size=FS_SMALL, color=INK2, z=8)
+        xk += 0.85 + 1.1 + bd.tw(txt, FS_SMALL)
+    mark(kx + 0.45, ky + 4.8 - 0.75, "s"); bd.t(kx + 1.55, ky + 4.8, "resection alone", size=FS_SMALL, color=INK2, z=8)
+    mark(kx + 0.8, ky + 7.2 - 0.75, "*"); bd.t(kx + 1.95, ky + 7.2, "plan", size=FS_SMALL, color=INK2, z=8)
+    # the ranking objective J (Methods, equation (4)), in two lines below the card
+    fy = cy0 + chh + 2.7
+    bd.t(xc, fy, r"$J = z_{\mathrm{P}} + z_{\mathrm{M}} + ½\,(z_{\mathrm{TN}} + z_{\mathrm{A}})"
+                 r" + ½\,(|z_{\mathrm{ev}}| + |z_{\mathrm{nd}}|)$", size=FS_SMALL, color=INK, z=8)
+    bd.t(xc + bd.tw(r"$J = $", FS_SMALL), fy + 2.5, r"$+\ 0.3\,(|t|/10 + 0.1\,i)$", size=FS_SMALL, color=INK, z=8)
+    # colour scale of J, flush right on the second line of the formula
+    wb_, wh_, wl_ = 6.0, bd.tw("high", FS_SMALL), bd.tw("low", FS_SMALL)
+    bx1 = xr - wh_ - 0.6
+    j_bar(bd, bx1 - wb_, fy + 2.5 - 0.85, wb_, h=0.85)
+    bd.t(bx1 - wb_ - 0.6 - wl_ - 1.2, fy + 2.5, "J", size=FS_SMALL, style="italic", color=INK, ha="right", z=8)
+
+    # ---- block 2: FE verification of the chosen plan (Fig. 7a) and its effects
     from maps import child_map
-    my, mw, mh = 35.9, 12.0, 9.0
-    bd.t(xc, my + 0.2, "Plan:", size=FS, weight="bold", color=NAVY)
+    my, mw, mh = 35.4, 11.0, 9.0
     _parts = ([f"{abs(t_ch):.0f}-mm {side} osteotomy"] if t_ch else []) + (["interposition"] if ip_ch else []) + \
              (["fusion"] if child["choice"][2] else [])          # the chosen plan, whatever it is (Claude, 2026-11-01)
-    bd.t(xc + 6.4, my + 0.2, " + ".join(_parts) if _parts else "resection alone", size=FS_SMALL, color=INK)
+    e_ = bd.tw("Plan: ", FS)
+    bd.t(xc, my, "Plan:", size=FS, color=NAVY)
+    bd.t(xc + e_, my, " + ".join(_parts) if _parts else "resection alone", size=FS_SMALL, color=INK)
     mk = np.load(os.path.join(ROOT, "results", "map_child_masks.npz"))
     fm = mk["post"] | mk["mid"] | mk["ant"]
     ix, iy = np.nonzero(fm.any(1))[0], np.nonzero(fm.any(0))[0]
@@ -348,38 +368,40 @@ def fig1():
     cxm, cym = (x0_ + x1_) / 2, (y0_ + y1_) / 2
     half = max(x1_ - x0_, (y1_ - y0_) * mw / mh) / 2
     uref = None
+    my0 = my + 1.4
+    m0, gapm = xc + 1.4, 3.2                   # first map inset so that its label stays inside the panel
     for k, (tag, lab) in enumerate([("resect", "resection alone"), ("plan", "plan")]):
-        mx = xc + k * (mw + 4.0)
-        bd.card(mx, my + 1.6, mw, mh, under=True, r=0.6, pad=0.0)
-        ax = bd.ax(mx + 0.3, my + 1.9, mw - 0.6, mh - 0.6)
+        mx = m0 + k * (mw + gapm)
+        bd.card(mx, my0, mw, mh, under=True, r=0.6, pad=0.0)
+        ax = bd.ax(mx + 0.3, my0 + 0.3, mw - 0.6, mh - 0.6)
         uref = child_map(ax, tag, "fe", uref=uref, lw=0.45, arrow_width=0.012, arrow_scale=8)
         ax.set_xlim(cxm - half, cxm + half); ax.set_ylim(cym - half * mh / mw, cym + half * mh / mw)
-        bd.t(mx + mw / 2, my + mh + 3.6, lab, size=FS_SMALL, ha="center", color=INK2)
-    bd.arr(xc + mw + 0.6, my + 1.6 + mh / 2, xc + mw + 3.4, my + 1.6 + mh / 2, color=NAVY, lw=0.6, head=(1.1, 0.7))
-    # FE-verified changes of the plan relative to resection alone (FE, CoMech prediction)
+        bd.t(mx + mw / 2, my0 + mh + 2.6, lab, size=FS_SMALL, ha="center", color=INK2)
+    bd.arr(m0 + mw + 0.4, my0 + mh / 2, m0 + mw + gapm - 0.4, my0 + mh / 2, color=NAVY, lw=0.6, head=(1.1, 0.7))
+    # FE-verified changes of the plan relative to resection alone (FE, CoMech prediction), flush with the right edge
     rows_ = [("post", "post_mean"), ("mid", "mid_mean"), ("TN", "tn_p99")]
-    tx2 = xc + 2 * mw + 4.0 + 1.0
-    c1, c2, c3 = tx2 + 9.0, tx2 + 14.7, tx2 + 16.4
-    bd.t(tx2, my + 3.3, "Δ", size=FS_SMALL, color=INK2)
-    bd.t(c1, my + 3.3, "FE", size=FS_SMALL, weight="bold", color=INK, ha="right")
-    bd.t(c2, my + 3.3, "pred.", size=FS_SMALL, color=INK2, ha="right")
+    tx2 = m0 + 2 * mw + gapm + 1.0; c1 = tx2 + 9.6; c2 = c1 + 5.9; c3 = xr - 0.9
+    bd.t(tx2, my0 + 1.9, "Δ", size=FS_SMALL, color=INK2)
+    bd.t(c1, my0 + 1.9, "FE", size=FS_SMALL, color=INK, ha="right")
+    bd.t(c2, my0 + 1.9, "pred.", size=FS_SMALL, color=INK2, ha="right")
     for k, (nm, key) in enumerate(rows_):
         fe_ = pct(child["eff_fe_resect"][key], child["eff_fe_plan"][key])
         pr_ = pct(child["eff_pred_resect"][key], child["eff_pred_plan"][key])
-        yy = my + 6.1 + k * 2.75
+        yy = my0 + 4.7 + k * 2.7
         bd.t(tx2, yy, nm, size=FS_SMALL, color=INK2)
         bd.t(c1, yy, f"{fe_:+.0f}%".replace("-", "−"), size=FS_SMALL, color=INK, ha="right")
         bd.t(c2, yy, f"{pr_:+.0f}%".replace("-", "−"), size=FS_SMALL, color=INK2, ha="right")
         ok = np.sign(fe_) == np.sign(pr_)
         bd.badge(c3, yy - 0.68, 0.78, "check" if ok else "cross")
 
-    # tolerance envelope of the child: FE defect sweep on its coalition-free twin (virtual cohort, Fig. 6)
+    # ---- block 3: tolerance envelope of the child (FE defect sweep on its coalition-free twin; virtual cohort, Fig. 6)
     fe_row = [r for r in RES("eval_cohort_fe.json")["rows"] if r["i"] == child["i"]][0]
     fac = child.get("facet", "post")      # facet of the child's defect (v3e: middle facet, type I child)
     cur = np.array(fe_row[f"fe_curve_{fac}"]); dd = np.arange(len(cur)) * 10.0
     rise = 100 * (cur / cur[0] - 1)
-    ty = 51.2
-    ax = bd.ax(xc + 6.4, ty + 1.4, 16.4, 10.6)
+    ty = 55.6
+    bd.t(xc, ty, "Tolerance envelope", size=FS, color=NAVY)
+    ax = bd.ax(xc + 5.4, ty + 1.9, 17.4, 9.0)
     tol = 100 * fe_row[f"fe_tol_{fac}"]; dch = 100 * fe_row[f"d_{fac}"]
     ax.axvspan(tol, 75, color="#F3DCD7", lw=0, zorder=0)
     ax.plot(dd, rise, color=FE, lw=0.75, marker="o", ms=1.6, mfc="white", mew=0.45, zorder=3)
@@ -394,19 +416,18 @@ def fig1():
     ax.set_xticks([0, 35, 70]); ax.set_yticks([0, 80, 160] if ytop < 200 else list(np.arange(0, ytop, 100.0)))
     ax.tick_params(labelsize=FS_SMALL, length=1.4, pad=0.8)
     style(ax, offset=1.0)
-    ax.set_xlabel(f"{'Posterior' if fac == 'post' else 'Middle'}-facet defect (%)", fontsize=FS_SMALL, labelpad=0.4,
-                  x=0.36, ha="center")   # v5: shifted left, clear of the formulas at right
-    ax.set_ylabel("Stress rise (%)", fontsize=FS_SMALL, labelpad=0.4)
-    lines(bd, xc + 25.4, ty + 2.9, [("Tolerance envelope", {"weight": "bold", "color": NAVY, "size": FS}),
-                                    (f"FE tolerance {tol:.0f}%", {"color": PAL["green_edge"]}),
-                                    (f"defect left {dch:.0f}%", {"color": PAL["cross"]}),
-                                    f"though C/P = {100 * child['ratio']:.0f}%",
-                                    "is below 50%" if child["ratio"] < 0.5 else "is above 50%"], step=1.95)
-    # tolerance and reserve as defined in Methods, bottom right (authors, 2026-11-04): d* is where the residual-facet
-    # mean stress first rises by 20% over the defect-free joint; R < 0: the defect left exceeds the tolerance
-    for k, eq in enumerate([r"$d^{\star}{:}\ \bar{\sigma}(d^{\star}) = 1.2\,\bar{\sigma}(0)$",
-                            r"$R = (d^{\star} - d)\,/\,d^{\star} " + ("< 0$" if tol < dch else "\\geq 0$")]):
-        bd.t(xc + 26.4, ty + 15.0 + 2.6 * k, eq, size=FS_SMALL, color=INK, z=8)
+    ax.set_xlabel(f"{'Posterior' if fac == 'post' else 'Middle'}-facet defect $d$ (%)", fontsize=FS_SMALL,
+                  labelpad=0.4)
+    ax.set_ylabel(r"$\Delta\bar{\sigma}$ (%)", fontsize=FS_SMALL, labelpad=0.4)
+    # definitions (Methods) and the child's values, in one column flush with the right edge of the panel
+    rx = xr - 20.2
+    rows_t = [(r"$d^{\star}{:}\ \bar{\sigma}(d^{\star}) = 1.2\,\bar{\sigma}(0)$", INK),
+              (r"tolerance $d^{\star} = " + f"{tol:.0f}" + r"\%$", PAL["green_edge"]),
+              (r"defect $d = " + f"{dch:.0f}" + r"\%$", PAL["cross"]),
+              (r"$R = (d^{\star} - d)\,/\,d^{\star} " + ("< 0$" if tol < dch else "\\geq 0$"), INK),
+              (f"C/P = {100 * child['ratio']:.0f}% " + ("(< 50%)" if child["ratio"] < 0.5 else "(≥ 50%)"), INK2)]
+    for k, (t_, c_) in enumerate(rows_t):
+        bd.t(rx, ty + 3.1 + 2.45 * k, t_, size=FS_SMALL, color=c_, z=8)
 
     # ================================================================== d: in silico evidence of this study
     # (revision 3, Claude 2026-11-03): one picture per result instead of text cards -- the atlas solver output
