@@ -1,5 +1,7 @@
 
 
+
+
 # CoMech
 
 Code for **"A biomechanical world model for in silico rehearsal of pediatric hindfoot surgery"** (manuscript under review; the citation will be added on publication).
@@ -10,9 +12,11 @@ CoMech is a co-constructed biomechanical world model of the pediatric hindfoot w
 
 ## Video demonstration
 
-[![CoMech video demonstration](demo/poster.jpg)](demo/CoMech_demo.mp4)
 
-A 99-second video ([`demo/CoMech_demo.mp4`](demo/CoMech_demo.mp4); Supplementary Video 1 of the paper) walks through the whole pipeline: the data engine on the atlas foot and its surgical actions, the CoMech architecture, full-field prediction, latent rehearsal for a virtual child verified by FE, the 50% rule in the virtual cohort and the CT-informed twins. Scene list: [`demo/README.md`](demo/README.md).
+https://github.com/user-attachments/assets/eaed81f2-123c-4dab-9cd7-fc9afe944481
+
+
+This video walks through the whole pipeline: the data engine on the atlas foot and its surgical actions, the CoMech architecture, full-field prediction, latent rehearsal for a virtual child verified by FE, the 50% rule in the virtual cohort and the CT-informed twins. Scene list: [`demo/README.md`](demo/README.md).
 
 ## Repository layout
 
