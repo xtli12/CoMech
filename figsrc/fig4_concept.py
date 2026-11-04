@@ -29,6 +29,8 @@ BLUE_TOK = LinearSegmentedColormap.from_list("tok", ["#DCEBF6", BLUE_L, SKY, BLU
 
 
 def lines(bd, x, y, items, ha="left", step=2.25, size=FS_SMALL, color=INK2):
+    """Stacked lines; the step grows with the printed size (base + BUMP, v5) so the leading stays as designed."""
+    step = step * (size + BUMP) / size
     for k, it in enumerate(items):
         if isinstance(it, str):
             it = (it, {})
@@ -204,8 +206,8 @@ def fig4():
             ["complete resection (defect),", "osteotomy t, interposition,", "fusion, load"],
             ["multigrid-CG solver,", "refinement-checked;", "calcaneus-fixed u"],
             ["2,016 solutions:", "σ(x), u(x), effects δ"]]
-    for k, d in enumerate(desc):
-        lines(bd, SX[k] + SW / 2, 24.6, d, ha="center")
+    for k, d in enumerate(desc):   # v5: the first column's widest line needs 0.8 mm more room on the left
+        lines(bd, SX[k] + SW / 2 + (0.8 if k == 0 else 0.0), 24.6, d, ha="center")
 
     # ============================================================ b: co-constructed world model (training)
     yb = 33.0

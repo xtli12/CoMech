@@ -6,6 +6,12 @@ CoMech is a co-constructed biomechanical world model of the pediatric hindfoot w
 
 > **Scope.** Every result in the paper is in silico: CoMech is trained and tested on solutions of the data engine, not on patient outcomes. The CT-informed twins of real feet are exploratory, rest on preliminary readings and are not validated against clinical outcomes.
 
+## Video demonstration
+
+[![CoMech video demonstration](demo/poster.jpg)](demo/CoMech_demo.mp4)
+
+A 99-second video ([`demo/CoMech_demo.mp4`](demo/CoMech_demo.mp4); Supplementary Video 1 of the paper) walks through the whole pipeline: the data engine on the atlas foot and its surgical actions, the CoMech architecture, full-field prediction, latent rehearsal for a virtual child verified by FE, the 50% rule in the virtual cohort and the CT-informed twins. Scene list: [`demo/README.md`](demo/README.md).
+
 ## Repository layout
 
 | Path | Contents |
@@ -16,6 +22,7 @@ CoMech is a co-constructed biomechanical world model of the pediatric hindfoot w
 | `exp/` | Atlas analogue, TCC-MechBank, held-out sweeps, virtual cohort and taxonomy set; parallel engine runner (`rb_run_engine_v4.py`); training; experiments (`e_*.py`); CT-informed twins; high-resolution checks; summaries (`summarize.py`) |
 | `gpu/` | GPU scaling experiment: PyTorch port of CoMech (CoMech-L), GINO and Geo-FNO baselines, extended training set, refined-grid FE reference (see `gpu/README.md`) |
 | `figsrc/`, `analysis/` | Figures and supplementary tables of the paper (house style in `figsrc/figstyle.py`) |
+| `demo/` | Video demonstration (Supplementary Video 1) |
 
 ## Requirements
 
@@ -26,6 +33,8 @@ python -m pip install -r requirements.txt
 ```
 
 PyTorch with CUDA is needed for the GPU solver of the engine (the CPU solver is used otherwise) and for the GPU scaling experiment.
+
+The figures are set in Times New Roman with panel titles in Microsoft YaHei Bold (`figsrc/figstyle.py`); both fonts come with Windows. Elsewhere, put the font files in a folder and set `COMECH_FONT_DIR` to it (the fonts are not distributed).
 
 ## Inputs that are not in this repository
 
@@ -59,7 +68,7 @@ python exp/summarize.py                                # results/numbers.json
 
 `bash exp/run_all.sh` runs the whole pipeline in the order used for the paper (ten models; the paper's runs used a workstation with 48 CPU threads and four GPUs). `bash figsrc/make_figures.sh` renders the three-dimensional images and builds the figures and supplementary tables. Some figure panels also need inputs that are not distributed (screenshots of the FE atlas, CT tiles); those scripts stop with a missing-file error without them.
 
-Environment variables: `RB_TEMPLATE` (label raster), `COMECH_MODELS` (model directory of the experiments, `results/models_long`), `NWORK` and `NGPU` (engine workers and GPUs), `RENDER_OUT` (rendered images), `CT_READ_DIR` (CT data of the readings, if available).
+Environment variables: `RB_TEMPLATE` (label raster), `COMECH_MODELS` (model directory of the experiments, `results/models_long`), `NWORK` and `NGPU` (engine workers and GPUs), `RENDER_OUT` (rendered images), `CT_READ_DIR` (CT data of the readings, if available), `COMECH_FONT_DIR` (figure fonts, if not installed).
 
 ## License
 

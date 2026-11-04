@@ -62,7 +62,7 @@ def fig8(out):
 
     # ---------------- a: reconstruction ----------------
     Zm = R("ct_P05R_medial"); h = float(Zm["h"])
-    cv.letter(0, 0.5, "a"); cv.header(4.8, 3.4, "P05-R: CT export to 3D reconstruction")
+    cv.panel(0, 0.5, "a", "P05-R: CT export to 3D reconstruction")
     r0, r1, c0, c1 = bbox(Zm["alpha"], 6)
     Wa = 49.0; Ha = Wa * (r1 - r0) / (c1 - c0)
     ax = cv.ax(3.0, 7.5, Wa, Ha)
@@ -102,8 +102,8 @@ def fig8(out):
 
     # ---------------- b: calcaneus, joint-line visibility ----------------
     Ze = R("ct_P05R_exploded")
-    xb = 57.0
-    cv.letter(xb, 0.5, "b"); cv.header(xb + 4.8, 3.4, "Calcaneus, talus removed: joint line on CT")
+    xb = 58.5                       # v5: 1.5 mm right, clear of the longer title of a (2026-11-04)
+    cv.panel(xb, 0.5, "b", "Calcaneus, talus removed: joint line on CT")
     r0, r1, c0, c1 = bbox(Ze["alpha"], 6)
     Wb = 60.0; Hb = Wb * (r1 - r0) / (c1 - c0)
     ax = cv.ax(xb + 2.0, 14.0, Wb, Hb)
@@ -120,7 +120,7 @@ def fig8(out):
 
     # ---------------- c: coronal reformats + reading ----------------
     xc = 124.0
-    cv.letter(xc, 0.5, "c"); cv.header(xc + 4.8, 3.4, "Coronal reformats at planes 1–3")
+    cv.panel(xc, 0.5, "c", "Coronal reformats at planes 1–3")
     if have_ct:
         A = np.load(f"{TCC}/anat_E39R_c.npy")
         tal, cal = seg == 1, seg == 2
@@ -165,7 +165,7 @@ def fig8(out):
     # ---------------- d: twin ----------------
     y2 = 69.0
     fr = {r["foot"]: r for r in F["rows"]}["P05-R"]
-    cv.letter(0, y2, "d"); cv.header(4.8, y2 + 2.9, "P05-R point twin (engine)")
+    cv.panel(0, y2, "d", "P05-R point twin (engine)")
     Zs = [R("twin_P05-R_pre"), R("twin_P05-R_resect")]
     im0 = Zs[0]["img"]; al = np.max([z["alpha"] for z in Zs], 0)
     sat = np.zeros(al.shape, bool)
@@ -199,11 +199,11 @@ def fig8(out):
             ("beyond the envelope" if fr["d_mid"] > fr["fe_tol"] else "within the envelope"))]
     for k, (a_, b_) in enumerate(tab):
         cv.text(1.0, yt + 2.6 * k, a_, fontsize=FS_SMALL, color=INK2)
-        cv.text(31.5, yt + 2.6 * k, b_, fontsize=FS_SMALL, color=INK)
+        cv.text(33.0, yt + 2.6 * k, b_, fontsize=FS_SMALL, color=INK)   # v5: clear of the longer labels (2026-11-04)
 
     # ---------------- e: envelope vs 50% rule (zones: >= 90% of twins within, <= 10%, in between) ----------------
     xe = 64.0
-    cv.letter(xe, y2, "e"); cv.header(xe + 4.8, y2 + 2.9, "39 feet: envelope and the 50% rule")
+    cv.panel(xe, y2, "e", "39 feet: envelope and the 50% rule")
     ax = cv.ax(xe + 11.0, y2 + 15.0, 38.0, 38.0)
     rng = np.random.default_rng(3)
     ax.axhspan(0.9, 1.1, color=ZONE_IN, lw=0, zorder=0)
@@ -247,7 +247,7 @@ def fig8(out):
 
     # ---------------- f: FE point twins as a bullet chart of the middle facet ----------------
     xf = 121.5
-    cv.letter(xf, y2, "f"); cv.header(xf + 4.8, y2 + 2.9, f"FE-verified point twins, {len(F['rows'])} type I feet")
+    cv.panel(xf, y2, "f", f"FE-verified point twins, {len(F['rows'])} type I feet")
     ax = cv.ax(xf + 11.0, y2 + 15.0, 40.0, 38.0)
     Rr = sorted(F["rows"], key=lambda r: r["d_mid"])
     TOL_C = "#BFE0D0"

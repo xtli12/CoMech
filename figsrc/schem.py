@@ -72,15 +72,24 @@ class Board(Canvas):
         self.arr(pts[-2][0], pts[-2][1], pts[-1][0], pts[-1][1], color=color, lw=lw, ls=ls, z=z, head=head)
 
     def t(self, x, y, s, size=FS, color=INK, ha="left", va="baseline", weight="normal", style="normal", z=6, **kw):
-        if not (len(s) == 1 and s.isalpha() and s.islower() and size >= FS_PANEL - 1e-6 and weight == "bold"):
-            weight, size = "normal", min(size, FS_MAX)   # Nature: bold only for panel letters, text <= 7 pt (2026-11-03)
-        return self.b.text(x, y, s, fontsize=size, color=color, ha=ha, va=va, fontweight=weight, fontstyle=style,
-                           zorder=z, **kw)
+        """Text in board millimetres at its base size (save_fig sets it 1 pt larger, v5). Bold only for panel letters
+        and for text tagged gid='ptitle' (panel titles) or gid='bold' (authors, 2026-11-04)."""
+        gid = kw.pop("gid", None)
+        if len(s) == 1 and s.isalpha() and s.islower() and size >= FS_PANEL - 1e-6 and weight == "bold":
+            gid = gid or "pletter"
+        elif gid not in ("ptitle", "bold"):
+            weight = "normal"
+        t = self.b.text(x, y, s, fontsize=size, color=color, ha=ha, va=va, fontweight=weight, fontstyle=style,
+                        zorder=z, **kw)
+        if gid:
+            t.set_gid(gid)
+        return t
 
-    def tw(self, s, size=FS, **kw):
-        """Width of a text string in mm (measured with the figure renderer)."""
+    def tw(self, s, size=FS, final=True, **kw):
+        """Width of a text string in mm as it will be printed (final=True: at its base size + BUMP, in the text font,
+        because save_fig enlarges every text by BUMP; measured with the figure renderer)."""
         r = self.fig.canvas.get_renderer()
-        t = self.b.text(0, 0, s, fontsize=size, **kw)
+        t = self.b.text(0, 0, s, fontsize=size + (BUMP if final else 0.0), **kw)
         bb = t.get_window_extent(renderer=r)
         t.remove()
         return bb.width / self.fig.dpi * 25.4
@@ -330,7 +339,7 @@ def _board_methods():
         self.box(x, y, w, h, fc=f, ec=e, lw=lw, r=r, z=z, under=True)
         if letter:
             self.u.text(x + tab_w / 2 + 0.1, y + 1.0, letter, ha="center", va="top", fontsize=FS_PANEL,
-                        fontweight="bold", color=INK, zorder=z + 4)
+                        fontweight="bold", color=INK, zorder=z + 4).set_gid("pletter")
         if tab:
             # tab = the left strip of the panel, clipped to its rounded outline
             p = FancyBboxPatch((x, y), w, h, boxstyle=f"round,pad=0,rounding_size={r}", fc="none", ec="none",
@@ -342,7 +351,7 @@ def _board_methods():
                         solid_capstyle="butt")
             yc = y + h / 2 if not letter else y + 5.5 + (h - 5.5) / 2
             self.u.text(x + tab_w / 2 + 0.15, yc, tab, rotation=90, ha="center", va="center",
-                        fontsize=FS_LABEL, fontweight="normal", color=e, zorder=z + 3)
+                        fontsize=FS_LABEL, fontweight="normal", color=e, zorder=z + 3).set_gid("ptitle")   # v5 title
         return x + (tab_w if tab else 0.0)
 
     def chevron(self, x, y, w=4.6, h=5.4, fc=None, z=3, body=0.52):
@@ -516,11 +525,12 @@ def _board_methods():
     def label_box(self, x, y, text, fs=FS_LABEL, pad=(1.1, 0.8), z=9, ec=None, fc=(1, 1, 1, 0.86), ha="center",
                   weight="normal", color=None, lw=0.45, ls="-"):
         """Semi-transparent white label box (the stream labels of the pipeline style); (x, y) = centre."""
+        fe = fs + BUMP                                   # printed size (v5)
         w = self.tw(text, fs, fontweight=weight) + 2 * pad[0]
-        h = fs * 0.3528 * 1.05 + 2 * pad[1]
+        h = fe * 0.3528 * 1.05 + 2 * pad[1]
         x0 = x - w / 2 if ha == "center" else x
         self.box(x0, y - h / 2, w, h, fc=fc, ec=ec or PAL["navy"], lw=lw, r=0.5, z=z, ls=ls)
-        self.t(x0 + w / 2, y + fs * 0.3528 * 0.36, text, size=fs, weight=weight, ha="center",
+        self.t(x0 + w / 2, y + fe * 0.3528 * 0.36, text, size=fs, weight=weight, ha="center",
                color=color or PAL["navy"], z=z + 0.5)
         return x0, w
 

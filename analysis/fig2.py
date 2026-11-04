@@ -66,7 +66,7 @@ def superior(cv, x, y, w, name, letters=False):
 def fig2():
     cv = Canvas(FIG_W, 121)
     # ---------------- a: FE template ----------------
-    cv.letter(0, 0.5, "a"); cv.header(4.8, 3.4, "Finite element template")
+    cv.panel(0, 0.5, "a", "Finite element template")
     for j, l in enumerate(["Adult foot–ankle CT: bones, cartilage, plantar fascia,",
                            "ligament springs, soft-tissue envelope, ground plate",
                            "Load: tibia 300 N, fibula 60 N (red); ground plate fixed (green)"]):
@@ -77,7 +77,7 @@ def fig2():
 
     # ---------------- b: coalition locations ----------------
     xb = 61.5
-    cv.letter(xb, 0.5, "b"); cv.header(xb + 4.8, 3.4, "Coalition location (superior view)")
+    cv.panel(xb, 0.5, "b", "Coalition location (superior view)")
     items = [("icon_coal_none", ["Intact"], True), ("icon_coal_I", ["Type I", "middle"], False),
              ("icon_coal_II", ["Type II", "posterior"], False), ("icon_coal_III", ["Type III", "extra-articular"], False),
              ("icon_coal_IV", ["Type IV", "complex"], False)]
@@ -98,7 +98,7 @@ def fig2():
 
     # ---------------- c: coalition stress maps (solver renderings) ----------------
     xc = 124.0
-    cv.letter(xc, 0.5, "c"); cv.header(xc + 4.8, 3.4, "Talocalcaneal stress (solver output)")
+    cv.panel(xc, 0.5, "c", "Talocalcaneal stress (solver output)")
     maps = [("r1_115", "Type I", 66.76), ("r1_121", "Type II", 61.18), ("r1_127", "Type III", 36.36),
             ("r1_133", "Type IV", 45.27)]
     for i, (f, lab, pk) in enumerate(maps):
@@ -117,7 +117,7 @@ def fig2():
     cv.text(xc + 30.0, 50.6, "Solver scale, set per map", ha="center", fontsize=FS_SMALL, color=INK2)
 
     # ---------------- d: peak stress at the bridge by taxonomy ----------------
-    cv.letter(0, 60.5, "d"); cv.header(4.8, 63.4, "Peak talocalcaneal stress at the bridge")
+    cv.panel(0, 60.5, "d", "Peak talocalcaneal stress at the bridge")
     ax = cv.ax(22.0, 70.0, 62.0, 39.0)
     rows = [("Rozansky I", 1), ("Rozansky II", 2), ("Rozansky III", 3), ("Rozansky IV", 4), ("Rozansky V", 5),
             (None, None), ("Type I", 6), ("Type II", 7), ("Type III", 8), ("Type IV", 9)]
@@ -132,9 +132,9 @@ def fig2():
         ylab.append(nm); yt.append(k)
     ax.axvline(CLS["tc_max"][0], color=INK2, lw=0.6, zorder=2)
     ax.axvline(CLS["tc_max"][10], color=INK2, lw=0.6, ls=(0, (3, 2)), zorder=2)
-    ax.text(CLS["tc_max"][0] - 1.2, -0.75, f"Intact\n{CLS['tc_max'][0]:.2f}", ha="right", va="bottom", fontsize=FS_SMALL,
-            color=INK2, linespacing=1.15)
-    ax.text(CLS["tc_max"][10] + 1.2, -0.75, f"Complete fusion\n{CLS['tc_max'][10]:.2f}", ha="left", va="bottom",
+    ax.text(CLS["tc_max"][0] - 1.9, -0.75, f"Intact\n{CLS['tc_max'][0]:.2f}", ha="right", va="bottom", fontsize=FS_SMALL,
+            color=INK2, linespacing=1.15)            # v5: 1 mm clear of the line (2026-11-04)
+    ax.text(CLS["tc_max"][10] + 1.9, -0.75, f"Complete fusion\n{CLS['tc_max'][10]:.2f}", ha="left", va="bottom",
             fontsize=FS_SMALL, color=INK2, linespacing=1.15)
 
     def gap(v0, v1, y, txt):
@@ -153,12 +153,12 @@ def fig2():
     ax.set_xlabel("Peak von Mises stress (MPa)")
     for t in ax.get_yticklabels()[5:]:
         t.set_color(BLUE)
-    cv.text(1.0, 118.4, "CV of articular peaks: anatomy-based I–IV 21–53%; Rozansky I–IV 5–26%", fontsize=FS_SMALL,
+    cv.text(1.0, 119.7, "CV of articular peaks: anatomy-based I–IV 21–53%; Rozansky I–IV 5–26%", fontsize=FS_SMALL,
             color=INK2)
 
     # ---------------- e: articular fingerprints ----------------
-    cv.letter(95.0, 60.5, "e"); cv.header(99.8, 63.4, "Articular fingerprints (peak stress, % of intact)")
-    ax = cv.ax(120.0, 76.0, 46.0, 41.0)
+    cv.panel(95.0, 60.5, "e", "Articular fingerprints (peak stress, % of intact)")
+    ax = cv.ax(118.0, 76.0, 49.0, 41.0)      # v5: wider cells so the larger column headers stay apart (2026-11-04)
     rows = list(range(1, 11))
     keys = ["ant_max", "mid_max", "post_max", "tn_max", "cc_max"]
     M = np.full((len(rows), len(keys)), np.nan)
@@ -177,7 +177,7 @@ def fig2():
     ax.set_yticks(range(10)); ax.set_yticklabels(ylabs)
     ax.axhline(4.5, color="white", lw=2.4); ax.axhline(8.5, color="white", lw=2.4)
     from matplotlib.cm import ScalarMappable
-    cbar_mm(cv, ScalarMappable(norm, DIV), 169.5, 76.0, 1.6, 41.0, "Peak stress (% of intact)",
+    cbar_mm(cv, ScalarMappable(norm, DIV), 170.5, 76.0, 1.6, 41.0, "Peak stress (% of intact)",
             ticks=[20, 60, 100, 140, 180], orientation="vertical")
     cv.save(OUT)
     print("saved", OUT)

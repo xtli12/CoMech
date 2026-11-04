@@ -11,6 +11,12 @@ Print rules (Nature research figure guide):
     them; secondary encoding (marker shape, fill, line style) wherever two colours meet;
   * lightness-monotonic sequential maps for magnitudes, a blue-grey-red diverging map only for signed changes.
 Layout: figures are composed on a millimetre grid (Canvas) so that panels, letters and axes align across columns.
+
+Version 5 (authors' request, 2026-11-04): Times New Roman for all text, panel titles in Microsoft YaHei Bold set on the
+baseline of their panel letter (Canvas.panel), panel letters in Times New Roman Bold, and every text one point larger
+than the base sizes below (panel letters 9 pt, panel titles 8 pt). The layout code keeps the base sizes; save_fig()
+applies the fonts and the +1 pt step to every text artist (v5_text). Fonts: Windows has them installed; elsewhere set
+COMECH_FONT_DIR to a folder with times*.ttf and a Microsoft YaHei Bold .ttf (the font files are not distributed).
 """
 import matplotlib as mpl
 mpl.use("Agg")
@@ -18,6 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as _np
 from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm, ListedColormap as _LCM
 
+import os as _os
 MM = 1 / 25.4
 FIG_W = 183            # mm, two-column width
 FIG_W1 = 89            # mm, one-column width
@@ -28,6 +35,28 @@ FS_SMALL = 5.5         # smallest text used anywhere (pt)
 FS_TITLE = 6.5         # kept for older scripts: headers are no longer bold sentences
 FS_PANEL = 8.0         # panel letters (pt)
 FS_MAX = 7.0           # largest text other than the panel letters (Nature final artwork: 5-7 pt; Claude, 2026-11-03)
+BUMP = 1.0             # v5: every text is set this many points larger than its base size (authors, 2026-11-04)
+FS_PANEL5 = 9.0        # v5 panel letters (Times New Roman Bold)
+FS_PTITLE5 = 7.5       # v5 panel titles (Microsoft YaHei Bold): the 6.5-pt headers one point larger
+TEXT_FONT = "Times New Roman"
+TITLE_FONT = "Microsoft YaHei"
+TITLE_DX = 3.2         # mm from the left of the panel letter to the left of its title
+LETTER_RISE = 2.2      # mm from the top of the panel letter to the common baseline of letter and title
+
+
+def _register_fonts():
+    from matplotlib import font_manager as _fm
+    d = _os.environ.get("COMECH_FONT_DIR", "")
+    if d and _os.path.isdir(d):
+        for f in sorted(_os.listdir(d)):
+            if f.lower().endswith((".ttf", ".otf")):
+                try:
+                    _fm.fontManager.addfont(_os.path.join(d, f))
+                except Exception:
+                    pass
+
+
+_register_fonts()
 
 # ---------------------------------------------------------------- neutrals
 INK = "#1A1A1A"        # text, axes
@@ -83,11 +112,13 @@ DIV = LinearSegmentedColormap.from_list(
             "#B2182B", "#67001F"])
 
 mpl.rcParams.update({
-    "font.family": "sans-serif",
-    "font.sans-serif": ["Liberation Sans", "Arial", "Helvetica", "DejaVu Sans"],
+    "font.family": "serif",
+    "font.serif": [TEXT_FONT, "Liberation Serif", "DejaVu Serif"],
+    "font.sans-serif": [TEXT_FONT, "Liberation Serif", "DejaVu Serif"],
     "mathtext.fontset": "custom",
-    "mathtext.rm": "Liberation Sans", "mathtext.it": "Liberation Sans:italic", "mathtext.bf": "Liberation Sans:bold",
-    "mathtext.sf": "Liberation Sans",
+    "mathtext.rm": TEXT_FONT, "mathtext.it": TEXT_FONT + ":italic", "mathtext.bf": TEXT_FONT + ":bold",
+    "mathtext.sf": TEXT_FONT, "mathtext.cal": TEXT_FONT + ":italic", "mathtext.tt": TEXT_FONT,
+    "mathtext.fallback": "stix",
     "font.size": FS,
     "axes.titlesize": FS_LABEL,
     "axes.titleweight": "normal",
@@ -152,9 +183,46 @@ class Canvas:
         return self.fig.add_axes([x / self.w, 1 - (y + h) / self.h, w / self.w, h / self.h], **kw)
 
     def letter(self, x, y, s):
-        """Panel letter (8 pt bold lowercase); (x, y) is the top-left of the glyph box."""
-        return self.fig.text(x / self.w, 1 - y / self.h, s, fontsize=FS_PANEL, fontweight="bold", color=INK,
-                             va="top", ha="left")
+        """Panel letter (bold lowercase); (x, y) is the top-left of the glyph box (v5: set on the baseline
+        y + LETTER_RISE, the baseline its title shares)."""
+        t = self.fig.text(x / self.w, 1 - (y + LETTER_RISE) / self.h, s, fontsize=FS_PANEL, fontweight="bold",
+                          color=INK, va="baseline", ha="left")
+        t.set_gid("pletter")
+        return t
+
+    def title_width(self, s):
+        """Printed width (mm) of a panel title (Microsoft YaHei Bold, FS_PTITLE5)."""
+        r = self.fig.canvas.get_renderer()
+        t = self.fig.text(0, 0, s, fontsize=FS_PTITLE5, fontweight="bold", family=TITLE_FONT)
+        w = t.get_window_extent(renderer=r).width / self.fig.dpi * 25.4
+        t.remove()
+        return w
+
+    def panel(self, x, y, s, title=None, dx=TITLE_DX, maxw=None, **kw):
+        """Panel letter at (x, y) (top-left of the glyph) and its title on the same baseline, dx mm to the right
+        (v5, authors 2026-11-04: titles aligned with the letters, Microsoft YaHei Bold). A title wider than maxw mm
+        is broken at a space into two lines (the second 1.2 x the title size below)."""
+        lt = self.letter(x, y, s)
+        tt = []
+        if title:
+            kw.setdefault("color", INK)
+            parts = [title]
+            if maxw and self.title_width(title) > maxw:
+                words = title.split(" ")
+                best = None
+                for k in range(1, len(words)):
+                    a, b = " ".join(words[:k]), " ".join(words[k:])
+                    wmax = max(self.title_width(a), self.title_width(b))
+                    if best is None or wmax < best[0]:
+                        best = (wmax, a, b)
+                parts = [best[1], best[2]]
+            for j, p in enumerate(parts):
+                yb = y + LETTER_RISE + j * 1.2 * FS_PTITLE5 * 0.3528
+                t = self.fig.text((x + dx) / self.w, 1 - yb / self.h, p, fontsize=FS_PTITLE5, fontweight="bold",
+                                  va="baseline", ha="left", **kw)
+                t.set_gid("ptitle")
+                tt.append(t)
+        return lt, (tt[0] if len(tt) == 1 else tt) if tt else None
 
     def text(self, x, y, s, **kw):
         kw.setdefault("fontsize", FS); kw.setdefault("color", INK)
@@ -400,13 +468,98 @@ def check_text(fig, min_size=FS_SMALL - 1e-6, max_size=FS_MAX + 1e-6):
     return bad
 
 
+def _role(t):
+    g = t.get_gid() or ""
+    if g == "pletter" or _is_panel_letter(t):
+        return "letter"
+    if g == "ptitle":
+        return "title"
+    return "bold" if g == "bold" else "text"
+
+
+def v5_text(fig):
+    """Version-5 text rules (authors, 2026-11-04): panel letters Times New Roman Bold 9 pt, panel titles Microsoft
+    YaHei Bold 8 pt, all other text Times New Roman one point larger than its base size, bold only where a script
+    asks for it (gid 'bold'). Tick labels are enlarged through tick_params so that regenerated ticks keep the size."""
+    import matplotlib.text as mtext
+    if getattr(fig, "_v5_done", False):
+        return
+    fig.canvas.draw()
+    ticks = set()
+    for ax in fig.axes:
+        for axis, nm in ((ax.xaxis, "x"), (ax.yaxis, "y")):
+            for which in ("major", "minor"):
+                lbls = [t for t in axis.get_ticklabels(which=which)]
+                ticks.update(id(t) for t in lbls)
+                vis = [t for t in lbls if t.get_text().strip()]
+                if vis:
+                    ax.tick_params(axis=nm, which=which, labelsize=vis[0].get_fontsize() + BUMP)
+            ticks.add(id(axis.get_offset_text()))
+            ot = axis.get_offset_text()
+            ot.set_fontsize(ot.get_fontsize() + BUMP); ot.set_family("serif")
+    for t in fig.findobj(mtext.Text):
+        if id(t) in ticks or not t.get_text().strip():
+            continue
+        r = _role(t)
+        if r == "letter":
+            t.set_fontfamily(TEXT_FONT); t.set_fontweight("bold"); t.set_fontsize(FS_PANEL5)
+        elif r == "title":
+            t.set_fontfamily(TITLE_FONT); t.set_fontweight("bold"); t.set_fontsize(FS_PTITLE5)
+        else:
+            t.set_fontfamily(TEXT_FONT)
+            t.set_fontweight("bold" if r == "bold" else "normal")
+            t.set_fontsize(t.get_fontsize() + BUMP)
+    fig._v5_done = True
+
+
+_CMAPS = {}
+
+
+def _cmap_of(path):
+    if path not in _CMAPS:
+        from matplotlib.ft2font import FT2Font
+        _CMAPS[path] = set(FT2Font(path).get_charmap())
+    return _CMAPS[path]
+
+
+def check_text_v5(fig):
+    """Every text artist: letters 9 pt Times New Roman Bold, titles 8 pt Microsoft YaHei Bold, other text 6.5-8 pt
+    Times New Roman, no glyph that would fall back to another font; returns the problems found."""
+    import matplotlib.text as mtext
+    from matplotlib import font_manager as fm
+    fig.canvas.draw()
+    bad = []
+    for t in fig.findobj(mtext.Text):
+        s = t.get_text()
+        if not t.get_visible() or not s.strip():
+            continue
+        fsz, r = t.get_fontsize(), _role(t)
+        path = fm.findfont(t.get_fontproperties(), fallback_to_default=False) if "$" not in s else None
+        if r == "letter":
+            if abs(fsz - FS_PANEL5) > 1e-6:
+                bad.append(f"panel letter at {fsz:.2f} pt: {s!r}")
+        elif r == "title":
+            if abs(fsz - FS_PTITLE5) > 1e-6 or (path and "msyh" not in _os.path.basename(path).lower()):
+                bad.append(f"title {fsz:.2f} pt {path and _os.path.basename(path)}: {s[:60]!r}")
+        else:
+            if fsz < FS_SMALL + BUMP - 1e-6 or fsz > FS_MAX + BUMP + 1e-6:
+                bad.append(f"{fsz:.2f} pt: {s[:60]!r}")
+            if path and "times" not in _os.path.basename(path).lower():
+                bad.append(f"font {_os.path.basename(path)}: {s[:60]!r}")
+        if path:
+            miss = sorted({c for c in s if ord(c) not in _cmap_of(path) and not c.isspace()})
+            if miss:
+                bad.append(f"glyphs not in {_os.path.basename(path)} {''.join(miss)!r}: {s[:60]!r}")
+    return bad
+
+
 def save_fig(fig, path_noext, png=True, check=True):
-    """Vector PDF (fonts embedded) plus a PNG preview; applies the Nature text rules and reports any text that still
-    breaks them."""
-    nature_text(fig)
+    """Vector PDF (fonts embedded) plus a PNG preview; applies the version-5 text rules (v5_text) and reports any text
+    that breaks them."""
+    v5_text(fig)
     if check:
-        for b in check_text(fig):
-            print("   TEXT SIZE:", b)
+        for b in check_text_v5(fig):
+            print("   TEXT:", b)
     fig.savefig(path_noext + ".pdf")
     if png:
         fig.savefig(path_noext + ".png", dpi=300)

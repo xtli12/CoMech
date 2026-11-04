@@ -25,7 +25,7 @@ def crop_white(name, thr=246, pad=3):
 def fig3():
     cv = Canvas(FIG_W, 134)
     # ---------------- a: alignment heatmaps ----------------
-    cv.letter(0, 0.5, "a"); cv.header(4.8, 3.4, "Hindfoot alignment re-routes load: change in peak stress versus neutral")
+    cv.panel(0, 0.5, "a", "Hindfoot alignment re-routes load: change in peak stress versus neutral")
     metrics = [("tc_max", "Coalition"), ("mid_max", "Middle\nfacet"), ("post_max", "Posterior\nfacet"),
                ("ant_max", "Anterior\nfacet"), ("tn_max", "Talo-\nnavicular"), ("cc_max", "Calcaneo-\ncuboid")]
     # The valgus models of types III and IV contained material errors in the solver input (found 2026-10-31 when the
@@ -33,8 +33,9 @@ def fig3():
     BAD = {("Type III", 2), ("Type IV", 2)}
     norm = TwoSlopeNorm(vmin=-100, vcenter=0, vmax=140)
     for j, (pos, title) in enumerate([(1, "10° varus"), (2, "10° valgus")]):
-        x0 = 15.0 + j * 79.0
-        ax = cv.ax(x0, 16.5, 60.0, 24.0)
+        HW = 64.0                                   # v5: wider cells for the larger column headers (2026-11-04)
+        x0 = 15.0 + j * (HW + 19.0)
+        ax = cv.ax(x0, 16.5, HW, 24.0)
         M = np.array([[np.nan if (t, pos) in BAD else 100 * (ALIGN[t][k][pos] - ALIGN[t][k][0]) / ALIGN[t][k][0]
                        for k, _ in metrics] for t in ALIGN_TYPES])
         heatmap(ax, M, DIV, norm, fmt="{:+.0f}", gap=1.0, fs=FS, na="")
@@ -50,14 +51,14 @@ def fig3():
         ax.set_yticks(range(4)); ax.set_yticklabels(ALIGN_TYPES if j == 0 else ["I", "II", "III", "IV"])
         if j == 1:
             ax.set_yticklabels(["Type I", "Type II", "Type III", "Type IV"])
-        cv.text(x0 + 30.0, 8.6, title, ha="center", fontsize=FS_LABEL)
+        cv.text(x0 + HW / 2, 8.6, title, ha="center", fontsize=FS_LABEL)
     cbar_mm(cv, ScalarMappable(norm, DIV), 171.0, 16.5, 1.6, 24.0, "Change (%)", ticks=[-100, -50, 0, 50, 100],
             orientation="vertical")
 
     # ---------------- b, c: facet-defect curves ----------------
     def defect_panel(x, D, facet, tip, header, letter, ylim, yticks):
-        cv.letter(x, 47.5, letter); cv.header(x + 4.8, 50.4, header)
-        ax = cv.ax(x + 10.0, 58.0, 50.0, 33.0)
+        cv.panel(x, 47.5, letter, header)
+        ax = cv.ax(x + 10.0, 58.0, 47.0, 33.0)     # v5: 47 mm so the larger end labels stay on the canvas
         xs = np.array(DEFECTS)
         pct = lambda k: 100 * (np.array(D[k]) - D[k][0]) / D[k][0]
         name = "middle" if facet == "mid" else "posterior"
@@ -96,15 +97,16 @@ def fig3():
                 arrowprops=dict(arrowstyle="-", lw=0.4, color=INK2, shrinkA=0, shrinkB=2))
 
     # ---------------- d: residual facets (solver renderings) ----------------
-    cv.letter(0, 101.5, "d")
+    cv.letter(0, 101.5, "d")   # v5: both group titles on the letter's baseline (101.5 + LETTER_RISE)
     seqs = [("Middle facet", [("r2_075", "Intact", 0.9225), ("r2_093", "30%", 1.3265), ("r2_105", "50%", 1.0376),
                               ("r2_117", "70%", 0.9995)]),
             ("Posterior facet", [("r2_076", "Intact", 1.1949), ("r2_136", "30%", 1.2194), ("r2_148", "50%", 1.2620),
                                  ("r2_160", "70%", 1.3333)])]
     for gi, (name, items) in enumerate(seqs):
         gx = 4.8 + gi * 92.0
-        cv.header(gx, 104.4, f"{name}: defect and peak von Mises stress (solver output)" if gi == 0 else
-                  f"{name}: defect and peak von Mises stress")
+        cv.text(TITLE_DX if gi == 0 else gx, 101.5 + LETTER_RISE,
+                f"{name}: defect and peak von Mises stress (solver output)" if gi == 0 else
+                f"{name}: defect and peak von Mises stress", fontsize=FS_PTITLE5, fontweight="bold").set_gid("ptitle")
         for i, (f, lab, pk) in enumerate(items):
             x = gx - 3.0 + i * 21.6
             ax = cv.ax(x, 109.5, 19.5, 24.0)

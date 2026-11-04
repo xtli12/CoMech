@@ -35,6 +35,8 @@ GAP = 1.6                                   # gap between panels (mm)
 
 
 def lines(bd, x, y, items, ha="left", step=2.15, size=FS_SMALL, color=INK2):
+    """Stacked lines; the step grows with the printed size (base + BUMP, v5) so the leading stays as designed."""
+    step = step * (size + BUMP) / size
     for k, it in enumerate(items):
         if isinstance(it, str):
             it = (it, {})
@@ -44,8 +46,9 @@ def lines(bd, x, y, items, ha="left", step=2.15, size=FS_SMALL, color=INK2):
 
 
 def head(bd, x, y, letter, s, color=None):
-    bd.t(x, y + 3.0, letter, size=FS_PANEL, weight="bold", color=INK)
-    bd.t(x + 3.9, y + 2.9, s, size=FS_LABEL, color=INK)   # headers as in the other figures (2026-11-03)
+    """Panel letter (Times New Roman Bold) and title (Microsoft YaHei Bold) on one baseline (v5, 2026-11-04)."""
+    bd.t(x, y + 3.0, letter, size=FS_PANEL, weight="bold", color=INK, gid="pletter")
+    bd.t(x + TITLE_DX, y + 3.0, s, size=FS_PTITLE5, weight="bold", color=INK, gid="ptitle")
 
 
 def tile(path, crop=None):
@@ -88,25 +91,25 @@ def pct(a, b):
 
 
 def fig1():
-    H = 96.5
+    H = 102.5                                                     # v5: +6 mm (larger text, formulas in c)
     bd = Board(FIG_W, H)
     child = RES("eval_maps.json")["child"]
     foot = __import__("fe.geometry", fromlist=["Foot"]).Foot(**child["foot"])
-    TOP, HT = 0.5, 66.0                                           # panels a-c
+    TOP, HT = 0.5, 72.0                                           # panels a-c
     PA, PB, PC = (0.5, 34.4), (0.5 + 34.4 + GAP, 95.4), (0.5 + 34.4 + GAP + 95.4 + GAP, 0)
     PC = (PC[0], FIG_W - 0.5 - PC[0])
     bd.panel(PA[0], TOP, PA[1], HT, "warm")
     bd.panel(PB[0], TOP, PB[1], HT, "blue")
     bd.panel(PC[0], TOP, PC[1], HT, "green")
-    bd.chevron(PA[0] + PA[1] - 1.2, 34.0, w=3.8, h=5.6, fc=PAL["warm_chev"], z=8)
-    bd.chevron(PB[0] + PB[1] - 1.2, 34.0, w=3.8, h=5.6, fc=PAL["green_chev"], z=8)
+    bd.chevron(PA[0] + PA[1] - 1.2, 37.0, w=3.8, h=5.6, fc=PAL["warm_chev"], z=8)
+    bd.chevron(PB[0] + PB[1] - 1.2, 37.0, w=3.8, h=5.6, fc=PAL["green_chev"], z=8)
 
     # ================================================================== a: planning today
     x0 = PA[0] + 1.5
     head(bd, x0, 1.0, "a", "Planning today")
-    rows = [("ct", 6.6, ["Imaging"], ["shape, not force"]),
-            ("fe", 17.6, ["Finite element", "analysis"], ["hours to weeks per", "patient and scenario"]),
-            ("wm", 29.4, ["Image/video", "world models"], ["imagine pixels,", "not mechanics"])]
+    rows = [("ct", 7.0, ["Imaging"], ["shape, not force"]),
+            ("fe", 19.2, ["Finite element", "analysis"], ["hours to weeks per", "patient and scenario"]),
+            ("wm", 31.6, ["Image/video", "world models"], ["imagine pixels,", "not mechanics"])]
     for kind, y, hd, body in rows:
         if kind == "ct":
             bd.card(x0, y, 10.4, 10.4, rounded_mask(tile(CT("a3"), (0.1, 0.9, 0.1, 0.9)), 0.06), r=0.7, pad=0.35)
@@ -115,15 +118,15 @@ def fig1():
         else:
             bd.film(x0, y + 0.8, 10.8, 8.4, [pixel_frame(3), pixel_frame(8)], gap=0.4)
         for j, h_ in enumerate(hd):
-            bd.t(x0 + 12.3, y + 2.6 + 2.25 * j, h_, size=FS, weight="bold", color=NAVY)
-        lines(bd, x0 + 12.3, y + 4.95 + 2.25 * (len(hd) - 1), body, step=2.05)
+            bd.t(x0 + 12.3, y + 2.6 + 2.6 * j, h_, size=FS, weight="bold", color=NAVY)
+        lines(bd, x0 + 12.3, y + 5.2 + 2.6 * (len(hd) - 1), body, step=2.05)
     # the population rule, drawn on the virtual child of Fig. 7a (engine rendering, as in b)
-    yr = 41.4
-    bd.arr(x0 + 5.4, 39.3, x0 + 5.4, yr - 0.3, color=PAL["warm_edge"], lw=0.7, head=(1.4, 0.85))
-    bd.t(x0 + 7.0, 40.7, "so decisions rest on", size=FS_SMALL, color=INK2)
+    yr = 45.4
+    bd.arr(x0 + 5.4, 42.6, x0 + 5.4, yr - 0.3, color=PAL["warm_edge"], lw=0.7, head=(1.4, 0.85))
+    bd.t(x0 + 7.0, 44.3, "so decisions rest on", size=FS_SMALL, color=INK2)
     bd.card(x0, yr, PA[1] - 3.0, HT - yr - 0.9, ec=PAL["warm_edge"], lw=0.55, r=1.0)
-    bd.t(x0 + 1.3, yr + 3.1, "Population rule", size=FS, weight="bold", color=PAL["warm_edge"])
-    pl = Placed(bd, "pre", x0 + 0.6, yr + 3.6, PA[1] - 4.2, 11.6, z=4)
+    bd.t(x0 + 1.3, yr + 3.3, "Population rule", size=FS, weight="bold", color=PAL["warm_edge"])
+    pl = Placed(bd, "pre", x0 + 0.6, yr + 4.0, PA[1] - 4.2, 11.6, z=4)
     if REAL_BONE:      # real-bone engine: centroids measured on the label raster (rbannot.py; Claude, 2026-11-01)
         from rbannot import mask_centroid
         cC = pl.mm(mask_centroid(foot, "coal")[None])[0]; cP = pl.mm(mask_centroid(foot, "post", exclude_coal=True)[None])[0]
@@ -140,15 +143,15 @@ def fig1():
     bd.t(cC[0], cC[1] + 0.9, "C", size=FS, weight="bold", color="white", ha="center", z=9)
     bd.t(cP[0], cP[1] + 0.9, "P", size=FS, weight="bold", color=NAVY, ha="center", z=9)
     # C/P bar: the child's ratio against the 50% threshold of the rule
-    bx, by, bw = x0 + 1.4, yr + 17.0, PA[1] - 6.0
+    bx, by, bw = x0 + 1.4, yr + 18.0, PA[1] - 6.0
     r_ = child["ratio"]
     bd.rect(bx, by, bw, 1.5, fc="#ECE7E4", z=5)
     bd.rect(bx, by, bw * r_, 1.5, fc=COAL, z=6)
     bd.seg([bx + 0.5 * bw, bx + 0.5 * bw], [by - 0.8, by + 2.3], color=INK, lw=0.6, z=7)
     bd.t(bx + 0.5 * bw + 0.5, by - 0.4, "50%", size=FS_SMALL, color=INK, z=7)
-    bd.t(bx, by + 4.1, f"C/P = {100 * r_:.0f}%: " + ("resect alone" if r_ < 0.5 else "do not resect alone"),
+    bd.t(bx, by + 4.4, f"C/P = {100 * r_:.0f}%: " + ("resect alone" if r_ < 0.5 else "do not resect alone"),
          size=FS_SMALL, color=INK)          # what the 50% rule says for this child (Claude, 2026-11-01)
-    bd.t(bx, by + 6.15, "(one number for every child)", size=FS_SMALL, color=INK2)
+    bd.t(bx, by + 6.8, "(one number for every child)", size=FS_SMALL, color=INK2)
 
     # ================================================================== b: CoMech
     xb = PB[0] + 1.5
@@ -156,10 +159,12 @@ def fig1():
     # ---- surgical actions u: engine renderings of the virtual child
     ax0, ay0, aw, ah = xb, 5.7, PB[1] - 3.0, 14.6
     bd.box(ax0, ay0, aw, ah, fc="#F5F1FB", ec=PAL["act"], lw=0.5, r=1.0, z=1)
-    bd.t(ax0 + 1.2, ay0 + 3.1, "Surgical", size=FS, weight="bold", color=PAL["act"])
-    bd.t(ax0 + 1.2, ay0 + 5.35, "action", size=FS, weight="bold", color=PAL["act"])
-    bd.t(ax0 + 1.2, ay0 + 7.9, "u", size=FS_LABEL + 0.5, style="italic", weight="bold", color=PAL["act"])
-    lines(bd, ax0 + 1.2, ay0 + 10.6, ["on the virtual", "child (engine)"], step=1.95, color=INK2)
+    # "Surgical / action u" in bold, u on the second line (authors, 2026-11-04)
+    bd.t(ax0 + 1.2, ay0 + 3.4, "Surgical", size=FS, weight="bold", color=PAL["act"], gid="bold")
+    bd.t(ax0 + 1.2, ay0 + 6.1, "action", size=FS, weight="bold", color=PAL["act"], gid="bold")
+    bd.t(ax0 + 1.2 + bd.tw("action ", FS, fontweight="bold"), ay0 + 6.1, "u", size=FS, style="italic",
+         weight="bold", color=PAL["act"], gid="bold")
+    lines(bd, ax0 + 1.2, ay0 + 9.6, ["on the virtual", "child (engine)"], step=1.95, color=INK2)
     acts = [("resect", "resection", "defect d"), ("osteo", "osteotomy", "translation t"),
             ("interp", "interposition", "fat graft"), ("fusion", "fusion", "subtalar"), ("load", "load", "× body weight")]
     crop = common_crop([a[0] for a in acts])
@@ -173,10 +178,10 @@ def fig1():
         bd.t(ix + aw1 / 2, ay0 + 13.45, sub, size=FS_SMALL, ha="center", color=INK2,
              style="italic" if len(sub) == 1 else "normal")
     # ---- main row: child's hindfoot -> state encoder -> s -> D -> s' -> decoders -> fields and effects
-    yc = 33.6
+    yc = 35.6
     ct = rgba_render(R("ct_P05R_medial"))
-    bd.img(xb + 0.2, 22.0, 15.4, 19.0, ct, z=3)
-    lines(bd, xb + 8.2, 43.0, [("Child's hindfoot", {"color": INK}), "(pre-operative state)"],
+    bd.img(xb + 0.2, 24.0, 15.4, 19.0, ct, z=3)
+    lines(bd, xb + 8.2, 45.0, [("Child's hindfoot", {"color": INK}), "(pre-operative state)"],
           ha="center", step=1.95)
     bd.gtrap(xb + 16.6, yc, 9.0, 12.0, 6.6, label="State\nencoder", fs=FS_SMALL)
     bd.tsub(xb + 21.1, yc + 8.3, "E", "s", size=FS, ha="center", color=NAVY)
@@ -189,7 +194,7 @@ def fig1():
     bd.arr(sx, ay0 + ah + 0.1, sx, yc - sr - 0.3, color=PAL["act"], lw=0.65, head=(1.4, 0.85))
     xu, _ = tokens_round(bd, sx + 1.5, ay0 + ah + 1.5, 4, 1, size=1.15, gap=0.28, seed=5, cmap=VIOLET, lo=0.35, hi=0.95)
     bd.t(xu + 0.8, ay0 + ah + 2.65, "u", size=FS, style="italic", color=PAL["act"])
-    lines(bd, sx - 1.3, 23.4, [("latent transition", {"weight": "bold", "color": NAVY}),
+    lines(bd, sx - 1.3, 25.2, [("latent transition", {"weight": "bold", "color": NAVY}),
                                ("s′ = D(s, u)", {"color": NAVY, "style": "italic"})], ha="right", step=2.05)
     xp0 = sx + sr + 2.6
     xp1, _ = tokens_round(bd, xp0, yc - 4.0, 3, 5, size=1.3, gap=0.32, seed=8, cmap=BLUE_TOK, lo=0.35, hi=0.95)
@@ -202,16 +207,16 @@ def fig1():
     ox = hx + 9.2
     st = cut_dark_base(rgba_render(R("heldout_stress_cm"))); dp = rgba_render(R("heldout_disp_cm"))
     cw, chh = 12.2, 7.6
-    bd.card(ox, 21.6, cw, chh, st, pad=0.35)
-    bd.card(ox, 30.2, cw, chh, dp, pad=0.35)
-    for yy in (21.6 + chh / 2, 30.2 + chh / 2, 41.6):
+    bd.card(ox, 23.6, cw, chh, st, pad=0.35)
+    bd.card(ox, 32.2, cw, chh, dp, pad=0.35)
+    for yy in (23.6 + chh / 2, 32.2 + chh / 2, 43.6):
         bd.elbow([(hx + 7.6, yc), (hx + 8.6, yc), (hx + 8.6, yy), (ox - 0.2, yy)], color=NAVY, lw=0.5,
                  head=(1.1, 0.7))
     tx = ox + cw + 0.9
-    lines(bd, tx, 24.4, [("stress", {"color": INK}), ("σ(x)", {"color": INK, "style": "italic"})], step=2.05)
-    lines(bd, tx, 33.0, [("displacement", {"color": INK}), ("u(x)", {"color": INK, "style": "italic"})], step=2.05)
+    lines(bd, tx, 26.4, [("stress", {"color": INK}), ("σ(x)", {"color": INK, "style": "italic"})], step=2.05)
+    lines(bd, tx, 35.0, [("displacement", {"color": INK}), ("u(x)", {"color": INK, "style": "italic"})], step=2.05)
     # effect head: 17 effect descriptors (schematic bars) with the delta seal
-    ex, ey = ox, 38.6
+    ex, ey = ox, 40.6
     bd.box(ex, ey, cw, 6.0, fc="white", ec="#B8C2CF", lw=0.45, r=0.7, z=3)
     vals = [0.55, 0.85, 0.35, 0.7, 0.5, 0.95, 0.4]
     for j, vv in enumerate(vals):
@@ -219,7 +224,7 @@ def fig1():
     bd.seal(ex + cw - 1.9, ey + 3.0, 1.4, fs=FS)
     lines(bd, tx, ey + 2.6, [("17 effects", {"color": INK}), ("δ", {"color": INK, "style": "italic"})], step=2.05)
     # ---- the two data streams and the co-construction constraints
-    ys0 = 48.0
+    ys0 = 51.5
     sims = [cut_dark_base(rgba_render(R(n))) for n in ["heldout_stress_fe", "child_resect_fe", "child_plan_fe",
                                                         "heldout_disp_fe"]]
     for k, im in enumerate(sims):
@@ -227,7 +232,7 @@ def fig1():
         bd.box(bx, by, 12.2, 6.1, fc="white", ec="none", r=0.5, z=2)
         bd.img(bx + 0.25, by + 0.25, 11.7, 5.6, im, z=3)
     bd.label_box(xb + 12.6, ys0 + 6.25, "Simulation stream", fs=FS_SMALL, ec=PAL["sim"], color=PAL["sim"])
-    lines(bd, xb + 12.6, ys0 + 15.0, ["exact actions, full fields",
+    lines(bd, xb + 12.6, ys0 + 14.6, ["exact actions, full fields",
                                       "(FE engine, atlas foot)" if REAL_BONE else "(open-source FE engine)"],   # (Claude, 2026-11-03)
           ha="center", step=1.95)
     cts = [tile(CT(f), (0.08, 0.86, 0.10, 0.90)) for f in ["b2", "c3", "b4", "d2"]]
@@ -237,8 +242,8 @@ def fig1():
                fit=False)
     bd.label_box(cx0 + 12.4, ys0 + 6.25, "Clinical stream", fs=FS_SMALL, ec=PAL["clin"], color=PAL["clin"],
                  ls=(0, (2.0, 1.0)), lw=0.55)
-    lines(bd, cx0 + 12.4, ys0 + 15.0, ["next step: pre-/post-op CT,", "operation, outcome (not used)"], ha="center",
-          step=1.95)
+    lines(bd, cx0 + 12.4, ys0 + 14.6, ["next step: pre-/post-op", "CT, operation, outcome", "(not used)"],
+          ha="center", step=1.95)
     vbezier(bd, (xb + 23.0, ys0 - 0.2), (sx - 3.0, yc + sr - 0.6), PAL["sim"], lw=0.8)
     vbezier(bd, (cx0 + 2.4, ys0 - 0.2), (sx + 3.0, yc + sr - 0.6), PAL["clin"], lw=0.8, ls=(0, (2.2, 1.3)))
     # co-construction: effect-swap and action sensitivity (pairs of actions -> D -> effects), as in Fig. 4b
@@ -268,7 +273,7 @@ def fig1():
             bd.rect(cx + 15.4, yr - 0.1, 0.75, 1.5, fc=GREY, ec="none", z=6)
             bd.badge(cx + 18.3, yr, 0.85, "cross")
 
-    yr1, yr2 = ys0 + 6.0, ys0 + 13.0
+    yr1, yr2 = ys0 + 6.3, ys0 + 13.8
     bd.icon_swap(cx + 1.6, yr1, 1.6)
     pair(yr1, "#2F6FB5", None, "a′", 1, True)
     lines(bd, cx + 20.0, yr1 - 1.3, [("effect-swap:", {"color": INK}), "equal FE effects →", "compatible futures"],
@@ -282,7 +287,7 @@ def fig1():
     xc = PC[0] + 1.5
     head(bd, xc, 1.0, "c", "Rehearsal before surgery")
     # latent rehearsal of the virtual child: real latent states (seed 0), ensemble objective J
-    bd.card(xc, 5.7, 27.4, 25.4, under=True, r=0.8, shadow=True)
+    bd.card(xc, 5.7, 27.4, 26.5, under=True, r=0.8, shadow=True)
     info = latent_fan(bd, xc + 0.6, 6.3, 26.2, 21.6, ms=1.0, star=1.05, lw_ray=0.25)
     sp = info["s"]
     bd.t(sp[0] + 1.6, sp[1] - 0.6, "s", size=FS, style="italic", color=NAVY, z=9)
@@ -303,14 +308,14 @@ def fig1():
                          linewidths=0.35, zorder=8)
     for row, items in enumerate([[("D", "with"), ("o", "without interposition")],
                                  [("s", "resection alone"), ("*", "plan")]]):
-        lx, ly = xc + 1.6, 24.3 + row * 2.2
+        lx, ly = xc + 0.75, 24.6 + row * 2.5         # v5: tighter spacing so that the larger text stays in the card
         for kind, txt in items:
-            mark(lx + (0.35 if kind == "*" else 0.0), ly - 0.65, kind)
-            off = 1.75 if kind == "*" else 1.1
+            mark(lx + (0.35 if kind == "*" else 0.0), ly - 0.75, kind)
+            off = {"*": 1.55, "s": 1.1}.get(kind, 0.85)
             bd.t(lx + off, ly, txt, size=FS_SMALL, color=INK2, z=8)
-            lx += off + 1.8 + bd.tw(txt, FS_SMALL)
-    j_bar(bd, xc + 9.6, 29.0, 9.0, h=0.9)
-    bd.t(xc + 1.3, 29.85, "J", size=FS, style="italic", color=INK)
+            lx += off + 0.95 + bd.tw(txt, FS_SMALL)
+    j_bar(bd, xc + 9.6, 29.8, 9.0, h=0.9)
+    bd.t(xc + 1.3, 30.65, "J", size=FS, style="italic", color=INK)
     tx = xc + 28.6
     t_ch, ip_ch, _ = child["choice"]
     side = "lateralizing" if t_ch < 0 else "medializing"
@@ -322,9 +327,15 @@ def fig1():
                         (f"(type {child['foot']['ctype']}, {abs(al):.0f}° {'valgus' if al > 0 else 'varus'})", {"color": INK}),
                         f"{len(L['cands'])} adjuncts after", "complete resection,", "ranked by J"],
           step=1.95)
+    # the ranking objective J (Methods, equation (4)), bottom right of the card (authors, 2026-11-04)
+    for k, eq in enumerate([r"$J = z_{\mathrm{P}} + z_{\mathrm{M}}$",
+                            r"$\;+\,½\,(z_{\mathrm{TN}} + z_{\mathrm{A}})$",
+                            r"$\;+\,½\,(|z_{\mathrm{ev}}| + |z_{\mathrm{nd}}|)$",
+                            r"$\;+\,0.3\,(|t|/10 + 0.1\,i)$"]):
+        bd.t(tx, 24.9 + 2.55 * k, eq, size=FS_SMALL, color=INK, z=8)
     # FE verification of the chosen plan (Fig. 7a) and its effects
     from maps import child_map
-    my, mw, mh = 33.0, 12.0, 9.0
+    my, mw, mh = 35.9, 12.0, 9.0
     bd.t(xc, my + 0.2, "Plan:", size=FS, weight="bold", color=NAVY)
     _parts = ([f"{abs(t_ch):.0f}-mm {side} osteotomy"] if t_ch else []) + (["interposition"] if ip_ch else []) + \
              (["fusion"] if child["choice"][2] else [])          # the chosen plan, whatever it is (Claude, 2026-11-01)
@@ -367,7 +378,7 @@ def fig1():
     fac = child.get("facet", "post")      # facet of the child's defect (v3e: middle facet, type I child)
     cur = np.array(fe_row[f"fe_curve_{fac}"]); dd = np.arange(len(cur)) * 10.0
     rise = 100 * (cur / cur[0] - 1)
-    ty = 48.6
+    ty = 51.2
     ax = bd.ax(xc + 6.4, ty + 1.4, 16.4, 10.6)
     tol = 100 * fe_row[f"fe_tol_{fac}"]; dch = 100 * fe_row[f"d_{fac}"]
     ax.axvspan(tol, 75, color="#F3DCD7", lw=0, zorder=0)
@@ -383,13 +394,19 @@ def fig1():
     ax.set_xticks([0, 35, 70]); ax.set_yticks([0, 80, 160] if ytop < 200 else list(np.arange(0, ytop, 100.0)))
     ax.tick_params(labelsize=FS_SMALL, length=1.4, pad=0.8)
     style(ax, offset=1.0)
-    ax.set_xlabel(f"{'Posterior' if fac == 'post' else 'Middle'}-facet defect (%)", fontsize=FS_SMALL, labelpad=0.4)
+    ax.set_xlabel(f"{'Posterior' if fac == 'post' else 'Middle'}-facet defect (%)", fontsize=FS_SMALL, labelpad=0.4,
+                  x=0.36, ha="center")   # v5: shifted left, clear of the formulas at right
     ax.set_ylabel("Stress rise (%)", fontsize=FS_SMALL, labelpad=0.4)
     lines(bd, xc + 25.4, ty + 2.9, [("Tolerance envelope", {"weight": "bold", "color": NAVY, "size": FS}),
                                     (f"FE tolerance {tol:.0f}%", {"color": PAL["green_edge"]}),
                                     (f"defect left {dch:.0f}%", {"color": PAL["cross"]}),
                                     f"though C/P = {100 * child['ratio']:.0f}%",
                                     "is below 50%" if child["ratio"] < 0.5 else "is above 50%"], step=1.95)
+    # tolerance and reserve as defined in Methods, bottom right (authors, 2026-11-04): d* is where the residual-facet
+    # mean stress first rises by 20% over the defect-free joint; R < 0: the defect left exceeds the tolerance
+    for k, eq in enumerate([r"$d^{\star}{:}\ \bar{\sigma}(d^{\star}) = 1.2\,\bar{\sigma}(0)$",
+                            r"$R = (d^{\star} - d)\,/\,d^{\star} " + ("< 0$" if tol < dch else "\\geq 0$")]):
+        bd.t(xc + 26.4, ty + 15.0 + 2.6 * k, eq, size=FS_SMALL, color=INK, z=8)
 
     # ================================================================== d: in silico evidence of this study
     # (revision 3, Claude 2026-11-03): one picture per result instead of text cards -- the atlas solver output

@@ -46,12 +46,63 @@ def pct_lbl(v, nd=0):
     return f"{v:.{nd}f}".replace("-", "−")
 
 
+# ---- v5 layout helpers (authors' request 2026-11-04: Times New Roman, every text 1 pt larger at save time) ----
+def tw_mm(cv, s, size, **kw):
+    """Printed width (mm) of a text set at base size `size` (save_fig prints it BUMP pt larger, Times New Roman)."""
+    r = cv.fig.canvas.get_renderer()
+    t = cv.fig.text(0, 0, s, fontsize=size + BUMP, family=TEXT_FONT, **kw)
+    w = t.get_window_extent(renderer=r).width / cv.fig.dpi * 25.4
+    t.remove()
+    return w
+
+
+def cap_mm(size):
+    """Cap height (mm) of Times New Roman printed at base size `size` + BUMP (cap height 0.662 em)."""
+    return 0.662 * (size + BUMP) / 72 * 25.4
+
+
+class at_print_size:
+    """Context: text artists and tick labels temporarily at their printed size (base + BUMP), so that layout code
+    can measure what will actually be printed; restored on exit (save_fig then applies BUMP once)."""
+
+    def __init__(self, cv, texts=(), axes_y=(), axes_x=()):
+        self.cv, self.texts, self.axes_y, self.axes_x = cv, list(texts), list(axes_y), list(axes_x)
+
+    def __enter__(self):
+        self.ts = [(t, t.get_fontsize()) for t in self.texts]
+        for t, f in self.ts:
+            t.set_fontsize(f + BUMP)
+        self.tk = []
+        for ax, nm in [(a, "y") for a in self.axes_y] + [(a, "x") for a in self.axes_x]:
+            lbl = [t for t in (ax.get_yticklabels() if nm == "y" else ax.get_xticklabels()) if t.get_text().strip()]
+            f = lbl[0].get_fontsize() if lbl else FS
+            self.tk.append((ax, nm, f))
+            ax.tick_params(axis=nm, labelsize=f + BUMP)
+        self.cv.fig.canvas.draw()
+        return self
+
+    def __exit__(self, *a):
+        for t, f in self.ts:
+            t.set_fontsize(f)
+        for ax, nm, f in self.tk:
+            ax.tick_params(axis=nm, labelsize=f)
+
+
+def panel2(cv, x, y, letter, line1, line2):
+    """Panel letter and a two-line title; the second line 1.2 x the title size below the first."""
+    cv.panel(x, y, letter, line1)
+    t = cv.fig.text(cv.fx(x + TITLE_DX), cv.fy(y + LETTER_RISE + 1.2 * FS_PTITLE5 / 72 * 25.4), line2,
+                    fontsize=FS_PTITLE5, fontweight="bold", va="baseline", ha="left", color=INK)
+    t.set_gid("ptitle")
+    return t
+
+
 # ============================== Figure 5 ==============================
 def fig5(D):
     cv = Canvas(FIG_W, 125)
     # ---- a: rendered fields of a held-out foot (unchanged from fig567.py) ----
     _ha = D["eval_maps"]["heldout"]["act"]; _fac = "posterior" if _ha[2] >= _ha[1] else "middle"
-    cv.letter(0, 0.5, "a"); cv.header(4.8, 3.4, f"Held-out foot, {100 * max(_ha[1], _ha[2]):.0f}% {_fac}-facet defect")
+    cv.panel(0, 0.5, "a", f"Held-out foot, {100 * max(_ha[1], _ha[2]):.0f}% {_fac}-facet defect")
     cols = [("fe", "FE (engine)"), ("cm", "CoMech"), ("err", "Absolute error")]
     xs, w = [0.8, 34.6, 68.4], 32.6
     for (k, t), x in zip(cols, xs):
@@ -87,7 +138,7 @@ def fig5(D):
     # ---- b: field accuracy (model colours of the house style) ----
     F = D["eval_fields"]
     xb = 104.0
-    cv.letter(xb, 0.5, "b"); cv.header(xb + 4.8, 3.4, "Field accuracy")
+    cv.panel(xb, 0.5, "b", "Field accuracy")
     models = ["comech_s0"] + [m for m in BASELINES if f"{m}|test" in F]
     mets = [("stress_l2_art", "Cartilage stress", "Error (relative L₂)", (0.1, 0.7), [0.2, 0.4, 0.6]),
             ("disp_l2", "Displacement", "Error (relative L₂)", (0.05, 0.7), [0.2, 0.4, 0.6]),
@@ -117,7 +168,16 @@ def fig5(D):
                 t_.set_color(mcol(m))
         ax.set_title(title, pad=4)
         ax.set_xlabel(xl, fontsize=FS)
-    lx = xb + 18.5
+    # v5: the longest model name (printed 1 pt larger) starts at the panel letter b; the three axes follow it
+    _axs = [a for a in cv.fig.axes[-3:]]
+    with at_print_size(cv, axes_y=_axs[:1]):
+        _px = 25.4 / cv.fig.dpi
+        _left = min(t_.get_window_extent().x0 for t_ in _axs[0].get_yticklabels() if t_.get_text()) * _px
+    _shift = max(0.0, xb - _left)
+    for a in _axs:
+        pos_ = a.get_position()
+        a.set_position([pos_.x0 + _shift / cv.w, pos_.y0, pos_.width, pos_.height])
+    lx = xb + 18.5 + _shift
     for k, (filled, lab) in enumerate([(True, "Held-out feet (40)"), (False, "Out-of-range feet (20)")]):
         ax0 = lx + k * 27.0
         cv.fig.add_artist(Line2D([cv.fx(ax0 + 1.0)], [cv.fy(60.6)], marker="o", ms=3.4, ls="none",
@@ -129,7 +189,7 @@ def fig5(D):
     # ---- c: speed (log scale; hardware named; fold difference between FE solve and CoMech field) ----
     L = D["eval_latency"]
     yr = 78.0
-    cv.letter(0, yr, "c"); cv.header(4.8, yr + 2.9, "Time per configuration")
+    cv.panel(0, yr, "c", "Time per configuration")
     ax = cv.ax(17.5, yr + 12.0, 22.5, 19.0)
     rows = [("FE solve", "one GPU", L["fe_solve_s_median"], FE),
             ("CoMech field", "one CPU core", L["rollout_full_field_s"], BLUE),
@@ -167,7 +227,7 @@ def fig5(D):
     s = Z["scores"]; Rw = Z["rows"]
     seeds = [m for m in SEEDS if m in Zs]
     xd = 44.5
-    cv.letter(xd, yr, "d"); cv.header(xd + 4.8, yr + 2.9, "Atlas analogue on the reference foot (never seen in training)")
+    panel2(cv, xd, yr, "d", "Atlas analogue on the reference foot", "(never seen in training)")   # v5: two lines
     ax = cv.ax(xd + 10.0, yr + 14.0, 37.0, 18.5)
     x = np.array([0, 1, 2, 3, 4, 5.6, 6.6, 7.6, 8.6])
     fe = np.array([Rw[n]["fe"]["coal_p99"] for n in COALS])
@@ -262,7 +322,7 @@ def fig5(D):
     # ---- e: label-free taxonomy (unchanged content) ----
     T = D["eval_taxonomy"]
     xe = 131.0
-    cv.letter(xe, yr, "e"); cv.header(xe + 4.8, yr + 2.9, "Label-free taxonomy (240 coalitions)")
+    panel2(cv, xe, yr, "e", "Label-free taxonomy", "(240 coalitions)")   # v5: two lines (right edge)
     at = np.array(T["labels"]["atype"]); emb = np.array(T["comech_s0"]["latent"]["anatomy"]["emb"])
     ax = cv.ax(xe + 2.5, yr + 14.0, 19.0, 19.0)
     for t in ["I", "II", "III", "IV"]:
@@ -273,8 +333,9 @@ def fig5(D):
         ax.spines[sp].set_visible(True); ax.spines[sp].set_color(BASE)
     ax.set_xlabel("PC 1", labelpad=1.5, fontsize=FS); ax.set_ylabel("PC 2", labelpad=1.5, fontsize=FS)
     ax.set_title("CoMech latent change", pad=4, fontsize=FS)
+    _col2 = 1.4 + max(tw_mm(cv, f"Type {t_}", FS_SMALL) for t_ in ["I", "III"]) + 2.0   # v5: printed widths
     for k, t in enumerate(["I", "II", "III", "IV"]):
-        xx = xe + 3.0 + (k % 2) * 9.5; yy = yr + 38.6 + (k // 2) * 2.6
+        xx = xe + 3.0 + (k % 2) * _col2; yy = yr + 38.6 + (k // 2) * 2.6
         cv.fig.add_artist(Line2D([cv.fx(xx)], [cv.fy(yy - 0.7)], marker=TYPE_MARKER[t], ms=2.8, ls="none",
                                  color=TYPE[t], mew=0, transform=cv.fig.transFigure))
         cv.text(xx + 1.4, yy, f"Type {t}", fontsize=FS_SMALL)
@@ -312,7 +373,7 @@ def fig6(D):
     TP = D["eval_tipping"]; fe = TP["fe"]; ids = sorted(fe, key=int)
 
     # ---------------- a: tolerable defect, FE against CoMech (joint plot, both facets) ----------------
-    cv.letter(0, 0.5, "a"); cv.header(4.8, 3.4, "Tolerable defect, 20 held-out feet")
+    cv.panel(0, 0.5, "a", "Tolerable defect, 20 held-out feet")
     # row 1: the data areas of a, b and c share their top (16 mm) and bottom (50 mm)
     AX, AY, AW = 11.0, 16.0, 34.0
     data = {}
@@ -346,7 +407,7 @@ def fig6(D):
     style(ax)
     ax.set_xlabel("FE tolerance (% of facet)"); ax.set_ylabel("CoMech tolerance (% of facet)")
     # error summaries as direct labels next to each cluster
-    for fac, nm, xy, ha in [("mid", "Middle facet", (0.03, 0.97), "left"), ("post", "Posterior facet", (0.97, 0.30), "right")]:
+    for fac, nm, xy, ha in [("mid", "Middle facet", (0.03, 0.97), "left"), ("post", "Posterior facet", (0.97, 0.285), "right")]:
         a, b, e = data[fac]
         loo = np.array([(a.sum() - x) / (len(a) - 1) for x in a])
         mae, cm = np.mean(np.abs(a - b)), np.mean(np.abs(a - loo))
@@ -368,10 +429,10 @@ def fig6(D):
 
     # ---------------- b: osteotomy and posterior tolerance, per foot ----------------
     xb = 63.5
-    cv.letter(xb, 0.5, "b"); cv.header(xb + 4.8, 3.4, "Osteotomy and posterior tolerance")
+    panel2(cv, xb, 0.5, "b", "Osteotomy and", "posterior tolerance")   # v5: two lines (letter c follows)
     X = D["numbers"]["xrate_fe_check"]
     # left-aligned with the header (2026-11-03): group labels start at the header's x, the axes follow them
-    BX0, BRIGHT, BY_, BH_ = xb + 4.8, xb + 41.0, 16.0, 34.0
+    BX0, BRIGHT, BY_, BH_ = xb + TITLE_DX, xb + 41.0, 16.0, 34.0
     ax = cv.ax(xb + 12.5, BY_, BRIGHT - (xb + 12.5), BH_)
     ys, labs, k_ok, n_ok, oks, centres = [], [], 0, 0, [], []
     blocks = [(0, "Lateralizing", "−5 mm"), (2, "Medializing", "+5 mm")]
@@ -413,10 +474,10 @@ def fig6(D):
     ytop, ybot = -0.7, rowy - 0.5 - 0.9
     rot = [cv.text(BX0, BY_ + (yc - ytop) / (ybot - ytop) * BH_, lab, ha="left", va="center", rotation=90,
                    fontsize=FS_SMALL, color=INK, linespacing=1.15) for yc, lab in centres]
-    cv.fig.canvas.draw()
-    rr_ = cv.fig.canvas.get_renderer(); px_mm = 25.4 / cv.fig.dpi
-    rot_right = max(t_.get_window_extent(rr_).x1 for t_ in rot) * px_mm
-    lab_left = min(t_.get_window_extent(rr_).x0 for t_ in ax.get_yticklabels()) * px_mm
+    with at_print_size(cv, texts=rot, axes_y=[ax]):          # v5: measured at the printed sizes
+        rr_ = cv.fig.canvas.get_renderer(); px_mm = 25.4 / cv.fig.dpi
+        rot_right = max(t_.get_window_extent(rr_).x1 for t_ in rot) * px_mm
+        lab_left = min(t_.get_window_extent(rr_).x0 for t_ in ax.get_yticklabels()) * px_mm
     new_left = ax.get_position().x0 * cv.w + (rot_right + 1.0 - lab_left)
     ax.set_position([new_left / cv.w, ax.get_position().y0, (BRIGHT - new_left) / cv.w, ax.get_position().height])
     xm_ = 1.0 + 1.8 / (BRIGHT - new_left)
@@ -440,7 +501,7 @@ def fig6(D):
     # ---------------- c: virtual cohort against the 50% rule ----------------
     CF = D["eval_cohort_fe"]
     xc = 113.0
-    cv.letter(xc, 0.5, "c"); cv.header(xc + 4.8, 3.4, "The 50% rule in a virtual cohort (135 feet)")
+    cv.panel(xc, 0.5, "c", "The 50% rule in a virtual cohort (135 feet)")
     CX, CY, CW, CH = xc + 11.5, 16.0, 29.5, 34.0
     ax = cv.ax(CX, CY, CW, CH)
     rows_all = []
@@ -479,7 +540,7 @@ def fig6(D):
         cv.text((xm(a_) + xm(b_)) / 2, CY - 2.4, lab, ha="center", fontsize=FS_SMALL, color=INK2)
     cv.text(CX - 1.0, CY - 5.6, "50% rule:", ha="left", fontsize=FS_SMALL, color=INK)
     # per type: share of feet in each category
-    BX, BY, BW, BH = xc + 52.0, 16.0, 12.5, 19.0
+    BX, BY, BW, BH = xc + 55.0, 16.0, 11.0, 19.0   # v5: 3 mm right of the 2026-11-03 layout, 1.5 mm narrower
     axb = cv.ax(BX, BY, BW, BH)
     by = {}
     for t in ["I", "II", "III", "IV"]:
@@ -506,20 +567,21 @@ def fig6(D):
     axb.set_xlabel("Feet (%)", fontsize=FS_SMALL, labelpad=1.0)
     axb.text(103, -0.95, "n", ha="left", va="center", fontsize=FS_SMALL, color=INK2)
     S = CF["summary"]["fe_within"]
-    cv.text(BX - 5.0, BY + BH + 9.4, "50% rule vs envelope:", fontsize=FS_SMALL, color=INK)
+    LX = xc + 47.0                                   # key of the bars: position of the 2026-11-03 layout
+    cv.text(LX, BY + BH + 9.4, "50% rule vs envelope:", fontsize=FS_SMALL, color=INK)
     for k, (key, lab) in enumerate([("permissive", f"too permissive ({S['mis_permissive']})"),
                                     ("agree", "agree"),
                                     ("strict", f"too strict ({S['mis_strict']})")]):
         yy = BY + BH + 11.9 + k * 2.4
-        cv.fig.add_artist(Rectangle((cv.fx(BX - 5.0), cv.fy(yy - 0.15)), 2.4 / cv.w, 1.5 / cv.h, color=CAT[key],
+        cv.fig.add_artist(Rectangle((cv.fx(LX), cv.fy(yy - 0.15)), 2.4 / cv.w, 1.5 / cv.h, color=CAT[key],
                                     transform=cv.fig.transFigure, lw=0))
-        cv.text(BX - 1.8, yy, lab, fontsize=FS_SMALL)
+        cv.text(LX + 3.2, yy, lab, fontsize=FS_SMALL)
 
 
     # ---------------- d: mechanically equivalent operations (precision-recall plane) ----------------
     E = D["eval_equiv_plan"]; EQ = E["equivalence"]
     yd = 66.0
-    cv.letter(0, yd, "d"); cv.header(4.8, yd + 2.9, "Mechanically equivalent operations")
+    cv.panel(0, yd, "d", "Mechanically equivalent operations")
     ax = cv.ax(11.5, yd + 9.5, 34.0, 34.0)
     XL, YL = (0.80, 0.97), (0.3, 1.0)
     r_ = np.linspace(0.5, 1.0, 400)
@@ -566,7 +628,7 @@ def fig6(D):
     # ---------------- e: ablation, 2 x 2 factorial tiles (seed 0) ----------------
     F = D["eval_fields"]
     xe = 62.0
-    cv.letter(xe, yd, "e"); cv.header(xe + 4.8, yd + 2.9, "Ablation of the effect-grounded constraints (seed 0)")
+    cv.panel(xe, yd, "e", "Ablation of the effect-grounded constraints (seed 0)")
     cells = [["comech_s0", "comech_nosens"], ["comech_noswap", "comech_none"]]
     metrics = [("Equivalence recall", lambda m: EQ[m]["recall"], "{:.2f}", "high", 1.0),
                ("Equivalence precision", lambda m: EQ[m]["precision"], "{:.2f}", "high", 1.0),
@@ -579,10 +641,10 @@ def fig6(D):
     TX, TW, TH, TG = xe + 4.0, 24.0, 25.5, 5.6
     TB = yd + 9.5 + 34.0 + (2.0 + 0.8) / 72 * 25.4
     TY = TB - TH
-    TT = yd + 9.5 + 0.716 * FS_SMALL / 72 * 25.4            # baseline whose cap height starts at the top of d's plot
-    cv.fig.canvas.draw()
-    bb = axd.get_xticklabels()[0].get_window_extent()
-    y_tick = (1 - 0.5 * (bb.y0 + bb.y1) / cv.fig.bbox.height) * cv.h
+    TT = yd + 9.5 + cap_mm(FS_SMALL)                        # baseline whose cap height starts at the top of d's plot
+    with at_print_size(cv, axes_x=[axd]):                  # v5: d's tick labels at their printed size
+        bb = axd.get_xticklabels()[0].get_window_extent()
+        y_tick = (1 - 0.5 * (bb.y0 + bb.y1) / cv.fig.bbox.height) * cv.h
     for k, (nm, fn, fmt, better, sc) in enumerate(metrics):
         M = [[sc * fn(cells[i][j]) for j in range(2)] for i in range(2)]
         vals = np.array(M).ravel()
@@ -608,13 +670,13 @@ def fig6(D):
     key = cv.text(TX, yd + 7.4, "Rows: effect-swap; columns: action sensitivity; + with, − without;",
                   fontsize=FS_SMALL, color=INK2)
     fm_ = cv.text(TX, yd + 7.4, "full model", fontsize=FS_SMALL, color=INK2)
-    rr_ = cv.fig.canvas.get_renderer(); ks = 1.8
-    w1 = key.get_window_extent(renderer=rr_).width / cv.fig.dpi * 25.4
-    w2 = fm_.get_window_extent(renderer=rr_).width / cv.fig.dpi * 25.4
+    ks = 1.8
+    w1 = tw_mm(cv, key.get_text(), FS_SMALL)               # v5: printed widths
+    w2 = tw_mm(cv, fm_.get_text(), FS_SMALL)
     k0 = TX + (4 * TW + 3 * TG) / 2 - (w1 + 1.3 + ks + 1.0 + w2) / 2
     key.set_x(cv.fx(k0))
     kx = k0 + w1 + 1.3
-    kc = yd + 7.4 - 0.5 * 0.716 * FS_SMALL / 72 * 25.4
+    kc = yd + 7.4 - 0.5 * cap_mm(FS_SMALL)
     cv.fig.add_artist(Rectangle((cv.fx(kx), cv.fy(kc + ks / 2)), ks / cv.w, ks / cv.h, fc="white", ec=INK, lw=0.9,
                                 transform=cv.fig.transFigure))
     fm_.set_x(cv.fx(kx + ks + 1.0))
@@ -629,15 +691,14 @@ def fig7(D):
     fac = Mp.get("facet", "post"); fname = {"post": "posterior", "mid": "middle"}[fac]
     t, ip, fu = Mp["choice"]; side = "medializing" if t > 0 else "lateralizing"
     align = Mp["foot"]["align"]
-    cv.letter(0, 0.5, "a")
     _tol = f"tolerance {100 * Mp['tol_' + fac]:.0f}%"
     if REAL_BONE:
         _fr = [r for r in (D.get("eval_cohort_fe") or {}).get("rows", []) if r.get("i") == Mp.get("i")]
         if _fr and f"fe_tol_{fac}" in _fr[0]:
             _tol = f"tolerance {100 * Mp['tol_' + fac]:.0f}% predicted, {100 * _fr[0]['fe_tol_' + fac]:.0f}% by FE"
-    cv.header(4.8, 3.4, f"Virtual child: type {Mp['foot']['ctype']} coalition, {abs(align):.0f}° "
-              f"{'valgus' if align > 0 else 'varus'}; complete resection leaves a {100 * Mp['d_' + fac]:.0f}% "
-              f"{fname}-facet defect ({_tol})")
+    cv.panel(0, 0.5, "a", f"Virtual child: type {Mp['foot']['ctype']} coalition, {abs(align):.0f}° "
+             f"{'valgus' if align > 0 else 'varus'}; complete resection leaves a {100 * Mp['d_' + fac]:.0f}% "
+             f"{fname}-facet defect ({_tol})")
     mk = np.load(os.path.join(ROOT, "results", "map_child_masks.npz"))
     fm = mk["post"] | mk["mid"] | mk["ant"] | mk["coal"]
     ix, iy = np.nonzero(fm.any(1))[0], np.nonzero(fm.any(0))[0]
@@ -650,7 +711,7 @@ def fig7(D):
             ("fe", "FE verification", "engine grid"),
             ("fefine", "FE, refined grid", "1.0-mm voxels (engine: 1.5 mm)" if REAL_BONE else "twofold in every direction")]
     rows = [("resect", ["Resection", "only"]),
-            ("plan", ["Rehearsed plan:"] + ([f"{abs(t):.0f}-mm {side}", "calcaneal osteotomy"] if t else []) +
+            ("plan", ["Rehearsed plan:"] + ([f"{abs(t):.0f}-mm {side}", "calcaneal", "osteotomy"] if t else []) +
              ([("+ " if t else "") + "interposition"] if ip else []) + ([("+ " if (t or ip) else "") + "fusion"] if fu else []) +
              ([] if (t or ip or fu) else ["resection alone"]))]
     X0, Y0, GX, GY = 19.0, 14.5, 1.6, 1.8
@@ -720,7 +781,7 @@ def fig7(D):
     # ---- b: planning regret as rainclouds ----
     E = D["eval_equiv_plan"]; PM = E["planning"]["models"]
     yr = 81.0
-    cv.letter(0, yr, "b"); cv.header(4.8, yr + 2.9, "Rehearsal on 16 held-out feet")
+    cv.panel(0, yr, "b", "Rehearsal on 16 held-out feet")
     models = ["comech_s0"] + [m for m in BASELINES if m in PM]
     Jf = [np.array(v["J_fe"]) for v in E["planning"]["feet"].values()]
     rand = [np.mean((J - J.min()) / (J.max() - J.min())) for J in Jf]
@@ -743,10 +804,10 @@ def fig7(D):
     style(ax, left=False)
     ax.set_xlabel("Regret (fraction of FE range)")
     # left-aligned with the header (2026-11-03): the longest model name starts at the header's x, right edge kept
-    cv.fig.canvas.draw()
-    rr_ = cv.fig.canvas.get_renderer(); px_mm = 25.4 / cv.fig.dpi
-    lab_left = min(t_.get_window_extent(rr_).x0 for t_ in ax.get_yticklabels()) * px_mm
-    new_left = 25.5 + (4.8 - lab_left)
+    with at_print_size(cv, axes_y=[ax]):                   # v5: measured at the printed size
+        rr_ = cv.fig.canvas.get_renderer(); px_mm = 25.4 / cv.fig.dpi
+        lab_left = min(t_.get_window_extent(rr_).x0 for t_ in ax.get_yticklabels()) * px_mm
+    new_left = 25.5 + (TITLE_DX - lab_left)                 # the title now starts at TITLE_DX
     ax.set_position([new_left / cv.w, ax.get_position().y0, (25.5 + 24.0 - new_left) / cv.w, ax.get_position().height])
     for (nm, v, col, top), p in zip(entries, pos):
         if top:
@@ -757,7 +818,7 @@ def fig7(D):
     # ---- c: abstention gate with marginal densities ----
     A = E["abstention"]
     xc = 62.5
-    cv.letter(xc, yr, "c"); cv.header(xc + 4.8, yr + 2.9, "Abstention gate")
+    cv.panel(xc, yr, "c", "Abstention gate")
     MX, MY, MW, MH = xc + 13.0, yr + 18.5, 30.0, 22.5
     ax = cv.ax(MX, MY, MW, MH)
     thr = A["threshold"]
@@ -795,7 +856,7 @@ def fig7(D):
     # ---- d: one- versus two-step roll-outs (three seeds) ----
     Rr = D["eval_rollout"]
     xd = 123.0
-    cv.letter(xd, yr, "d"); cv.header(xd + 4.8, yr + 2.9, "Composed roll-outs: cartilage stress error")
+    cv.panel(xd, yr, "d", "Composed roll-outs: cartilage stress error")
     ax = cv.ax(xd + 12.5, yr + 11.0, 28.5, 28.5)
     sds = [s_ for s_ in SEEDS if s_ in Rr]
     shades = {"comech_s0": "#0B4F80", "comech_s1": BLUE, "comech_s2": SKY}
@@ -838,6 +899,7 @@ def fig7(D):
     axh.axhline(0, color=INK2, lw=0.5)
     axh.axhline(np.median(diff), color=BLUE, lw=0.8, ls=(0, (2, 1)))
     axh.set_xlim(0, 1.1); axh.set_ylim(-gmax, gmax)
+    axh.yaxis.set_major_locator(mpl.ticker.MultipleLocator(2.5))   # v5: the ticks of the 2026-11-03 version
     axh.set_xticks([])
     for sp_ in ("top", "left", "bottom"):
         axh.spines[sp_].set_visible(False)
